@@ -1,8 +1,24 @@
 import json
 import sys
 import time
+from enum import IntEnum
 import pywinauto
 import pywinauto.controls.uia_controls as uia_controls
+from pywinauto.uia_defines import NoPatternInterfaceError
+
+# pywinauto does not have this natively implemented, see pywinauto notes/WindowInteractionState.txt for explanation
+class WindowInteractionState(IntEnum):
+    Running = 0
+    Closing = 1
+    ReadyForUserInteraction = 2
+    BlockedByModalWindow = 3
+    NotResponding = 4
+
+def get_window_interaction_state(control):
+    try:
+        return control.iface_window.CurrentWindowInteractionState
+    except NoPatternInterfaceError:
+        return None
 
 application_name = "FileZilla"
 application = pywinauto.Application(backend="uia")
@@ -72,9 +88,21 @@ interactive_control_types = [uia_controls.ButtonWrapper]
 def is_interactive_control(control):
     print(control)
     print(repr(control))
-    # Check whether it's listed as  a interactive_control_type and that 
-    # it's parent is not the title bar (minimise, maximise, etc.) and buttons from a scrollbar
-    return type(control) in interactive_control_types and control.parent().friendly_class_name() not in ["ScrollBar", "TitleBar"]
+    
+    # Check whether it's not inaccessible due to it's parent being blocked by modal dialog
+    window_state = get_window_interaction_state(control.parent())
+    if window_state is not None and window_state == WindowInteractionState.BlockedByModalWindow:
+        return False
+    
+    # Check whether it's listed as  a interactive_control_type
+    if type(control) not in interactive_control_types:
+        return False
+
+    # Check it's parent is not the title bar (minimise, maximise, etc.) and buttons from a scrollbar
+    if control.parent().friendly_class_name() in ["ScrollBar", "TitleBar"]:
+        return False
+    
+    return True
 
 def get_debug_info(control):
     return {
