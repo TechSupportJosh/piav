@@ -76,6 +76,11 @@ def is_interactive_control(control):
     # it's parent is not the title bar (minimise, maximise, etc.) and buttons from a scrollbar
     return type(control) in interactive_control_types and control.parent().friendly_class_name() not in ["ScrollBar", "TitleBar"]
 
+def get_debug_info(control):
+    return {
+        "text": control.texts()
+    }
+
 def attempt_unique_id(control):
     if control.automation_id() != "":
         return {
@@ -83,7 +88,7 @@ def attempt_unique_id(control):
         }
 
 print("Starting window enumeration...")
-enumeration = application.windows(top_level_only=False)
+enumeration = application.windows(top_level_only=False, enabled_only=True)
 interactive_controls = filter(is_interactive_control, enumeration)
 print("Finished window enumeration...")
 
@@ -99,7 +104,8 @@ for control in interactive_controls:
 
     output["found_controls"].append({
         "type": control.friendly_class_name(),
-        "reference": attempt_unique_id(control)
+        "reference": attempt_unique_id(control),
+        "_debug": get_debug_info(control)
     })
 
 with open(f"../server/output/{task_input['input_id']}-output.json", "w") as task_output_file:
