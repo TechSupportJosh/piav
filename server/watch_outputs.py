@@ -48,6 +48,20 @@ class SendToMongo(PatternMatchingEventHandler):
         with open(os.path.join("output", task_id + ".json"), "r") as output_file:
             task_output = json.load(output_file)
 
+        # Detect whether this output is identical to another output, in which case we don't need to process it
+        output_search = output_db.find_one({"top_window_texts": task_output["top_window_texts"]})
+
+        if output_search is not None:
+            # This output is identical to another output, indiciating that maybe we've hit a "back" button or cancel on a dialog.
+            # Rather than inserting the output, insert a entry to the already discovered one
+            output_db.insert_one({
+                "input_id": task_output["input_id"],
+                "same_as": output_search["_id"]
+            })
+
+            print("Output of task {} same as {}, inserting same_as entry.".format(task_id, output_search["_id"]))
+            return
+
         # Insert this output into our database
         output_db.insert_one(task_output)
 
@@ -69,9 +83,21 @@ if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1] == "new":
         # TODO: Start a prompt which takes in details about the new program
         print("Please enter task information: ")
+
         # Empty the databases
         input_db.delete_many({})
         output_db.delete_many({})
+
+        # Empty input and output files
+        # Doesn't currently work because of VM shared folders being "in use"
+        if False:
+            for file in os.listdir("input"):
+                if file.endswith(".json"):
+                    os.remove(os.path.join("input", file))
+
+            for file in os.listdir("output"):
+                if file.endswith(".json") or file.endswith(".complete"):
+                    os.remove(os.path.join("output", file))
 
         # Input the first task
         response = input_db.insert_one({

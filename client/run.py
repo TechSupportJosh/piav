@@ -95,6 +95,7 @@ print("Finished window enumeration...")
 output = {
     "input_id": task_input["_id"],
     "application_alive": True,
+    "top_window_texts": sorted(application.top_window().children_texts()),
     "found_controls": []
 }
 
