@@ -2,10 +2,9 @@ import json
 import copy
 import os
 import sys
+import itertools
 
 def add_button_press_to_precusor_list(branches, precursor_list, button_control):
-    global task_counter
-
     # Add new precursor, click on this button
     precursor_list.append({
         "reference": button_control["reference"],
@@ -25,16 +24,11 @@ def get_branches(input_task, output_task):
     prepend_precursor = input_task["precursors"]
 
     branches = []
-
-    # so the strat is 
-    # Radio buttons create branches for each value (1 -> button, 2 -> button, 3 -> button)
-    # Check boxes create multiple branches for each value (1 -> button, 12 -> button, 123 -> button, 2 -> button etc.)
-    # So the strat is to work backwords, iterate through each button, if there's radio buttons, append each of them before hand
-
     output_controls = output_task["found_controls"]
 
     print("Input elements: ", output_controls)
 
+    # Create a list of all the different types of controls
     buttons = list(filter(lambda element: element["type"] == "Button", output_controls))
     radio_buttons = list(filter(lambda element: element["type"] == "RadioButton", output_controls))
     checkboxes = list(filter(lambda element: element["type"] == "CheckBox", output_controls))
@@ -42,13 +36,15 @@ def get_branches(input_task, output_task):
     print("Buttons: ", buttons)
     print("Radio Buttons: ", radio_buttons)
 
-    import itertools
+    # TODO: What if we have radio buttons and checkboxes on the same page?
 
+    # If we have radio buttons
     if radio_buttons:
+        # Generate the cartesian product of radio buttons and regular buttons
         for radio_button, button_control in itertools.product(radio_buttons, buttons):
             new_precursors = copy.deepcopy(prepend_precursor)
             
-            # Add new precursor, click on this button
+            # Click on this radio button
             new_precursors.append({
                 "reference": radio_button["reference"],
                 "wait_for_element_timeout": 15, # TODO: dynamic delays
@@ -59,9 +55,13 @@ def get_branches(input_task, output_task):
                 }
             })
 
+            # Then click on the button
             add_button_press_to_precusor_list(branches, new_precursors, button_control)
     elif checkboxes:
+        # If we have checkboxes
+        # Generate all possible combinations of the checkboxes and their states (TT, TF, FT, FF)
         nest_me = itertools.product([False, True], repeat=len(checkboxes))
+        # Then generate cartesian product of all of those states and buttons
         product_list = itertools.product(nest_me, buttons)
         for checkboxes_state, button_control in product_list:
             new_precursors = copy.deepcopy(prepend_precursor)
@@ -83,15 +83,12 @@ def get_branches(input_task, output_task):
 
             add_button_press_to_precusor_list(branches, new_precursors, button_control)
     else:
+        # If we just have buttons, click on them
         for button_control in buttons:
             new_precursors = copy.deepcopy(prepend_precursor)
             
             add_button_press_to_precusor_list(branches, new_precursors, button_control)
 
     print("Branches: ", branches)
-
-    #for branch in branches:
-    #    with open("input/{}-input.json".format(branch["input_id"]), "w") as output_task_file:
-    #        json.dump(branch, output_task_file, indent=2)
 
     return branches
