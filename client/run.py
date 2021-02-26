@@ -31,7 +31,7 @@ except RuntimeError:
 
 
 # Load our input JSON before enumerating
-with open("../server/input/{}-input.json".format(sys.argv[1]), "r") as task_input_json:
+with open("../server/input/{}.json".format(sys.argv[1]), "r") as task_input_json:
     task_input = json.load(task_input_json)
 
 # Now execute task_input 
@@ -93,7 +93,7 @@ interactive_controls = filter(is_interactive_control, enumeration)
 print("Finished window enumeration...")
 
 output = {
-    "input_id": task_input["input_id"],
+    "input_id": task_input["_id"],
     "application_alive": True,
     "found_controls": []
 }
@@ -108,8 +108,12 @@ for control in interactive_controls:
         "_debug": get_debug_info(control)
     })
 
-with open(f"../server/output/{task_input['input_id']}-output.json", "w") as task_output_file:
+with open(f"../server/output/{task_input['_id']}.json", "w") as task_output_file:
     json.dump(output, task_output_file, indent=2)
 
 # Finally, kill the application
 application.kill(soft=False)
+
+# Once our application has been killed, create a .complete file to inform the server we've finished
+with open(f"../server/output/{task_input['_id']}.complete", "w") as complete_file:
+    complete_file.write("Done!")

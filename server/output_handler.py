@@ -3,12 +3,6 @@ import copy
 import os
 import sys
 
-
-task_counter = 0
-
-for file_name in os.listdir("input"):
-    task_counter = max(int(file_name.split("-")[0]), task_counter)
-
 def add_button_press_to_precusor_list(branches, precursor_list, button_control):
     global task_counter
 
@@ -23,22 +17,11 @@ def add_button_press_to_precusor_list(branches, precursor_list, button_control):
         }
     })
 
-    task_counter += 1
-
     branches.append({
-        # TODO: Add global incremental ID
-        "input_id": task_counter,
         "precursors": precursor_list
     })
 
-def process_task_output(task_index):
-    with open(f"input/{task_index}-input.json", "r") as output_task_file:
-        input_task = json.load(output_task_file)
-
-    # Take in a output JSON and generate the next input JSONs
-    with open(f"output/{task_index}-output.json", "r") as output_task_file:
-        output_task = json.load(output_task_file)
-
+def get_branches(input_task, output_task):
     prepend_precursor = input_task["precursors"]
 
     branches = []
@@ -107,8 +90,8 @@ def process_task_output(task_index):
 
     print("Branches: ", branches)
 
-    for branch in branches:
-        with open("input/{}-input.json".format(branch["input_id"]), "w") as output_task_file:
-            json.dump(branch, output_task_file, indent=2)
+    #for branch in branches:
+    #    with open("input/{}-input.json".format(branch["input_id"]), "w") as output_task_file:
+    #        json.dump(branch, output_task_file, indent=2)
 
-process_task_output(sys.argv[1])
+    return branches
