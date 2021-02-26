@@ -49,7 +49,7 @@ class SendToMongo(PatternMatchingEventHandler):
             task_output = json.load(output_file)
 
         # Detect whether this output is identical to another output, in which case we don't need to process it
-        output_search = output_db.find_one({"top_window_texts": task_output["top_window_texts"]})
+        output_search = output_db.find_one({"top_window_texts": task_output["top_window_texts"], "found_controls": task_output["found_controls"]})
 
         if output_search is not None:
             # This output is identical to another output, indiciating that maybe we've hit a "back" button or cancel on a dialog.
