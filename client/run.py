@@ -115,33 +115,43 @@ def attempt_unique_id(control):
             "auto_id": control.automation_id()
         }
 
-print("Starting window enumeration...")
-enumeration = application.windows(top_level_only=False, enabled_only=True)
-interactive_controls = filter(is_interactive_control, enumeration)
-print("Finished window enumeration...")
+# Check whether the application is still alive (we may have closed it down!)
+if not application.is_process_running():
+    print("Application's process has ended.")
 
-output = {
-    "input_id": task_input["_id"],
-    "application_alive": True,
-    "top_window_texts": sorted(application.top_window().children_texts()),
-    "found_controls": []
-}
+    output = {
+        "input_id": task_input["_id"],
+        "application_alive": False
+    }
+else:
+    print("Starting window enumeration...")
+    enumeration = application.windows(top_level_only=False, enabled_only=True)
+    interactive_controls = filter(is_interactive_control, enumeration)
+    print("Finished window enumeration...")
 
-# Now we need to output the list of possible controls
-for control in interactive_controls:
-    control_type = None
+    output = {
+        "input_id": task_input["_id"],
+        "application_alive": True,
+        "top_window_texts": sorted(application.top_window().children_texts()),
+        "found_controls": []
+    }
 
-    output["found_controls"].append({
-        "type": control.friendly_class_name(),
-        "reference": attempt_unique_id(control),
-        "_debug": get_debug_info(control)
-    })
+    # Now we need to output the list of possible controls
+    for control in interactive_controls:
+        control_type = None
 
+        output["found_controls"].append({
+            "type": control.friendly_class_name(),
+            "reference": attempt_unique_id(control),
+            "_debug": get_debug_info(control)
+        })
+
+    # Finally, kill the application
+    application.kill(soft=False)
+
+# Write our output
 with open(f"../server/output/{task_input['_id']}.json", "w") as task_output_file:
     json.dump(output, task_output_file, indent=2)
-
-# Finally, kill the application
-application.kill(soft=False)
 
 # Once our application has been killed, create a .complete file to inform the server we've finished
 with open(f"../server/output/{task_input['_id']}.complete", "w") as complete_file:

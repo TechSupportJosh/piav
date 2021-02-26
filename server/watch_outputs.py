@@ -47,35 +47,40 @@ class SendToMongo(PatternMatchingEventHandler):
         
         with open(os.path.join("output", task_id + ".json"), "r") as output_file:
             task_output = json.load(output_file)
+        
+        # Only consider duplicate outputs if they're alive 
+        if task_output["application_alive"]:
+            # Detect whether this output is identical to another output, in which case we don't need to process it
+            output_search = output_db.find_one({"top_window_texts": task_output["top_window_texts"], "found_controls": task_output["found_controls"]})
 
-        # Detect whether this output is identical to another output, in which case we don't need to process it
-        output_search = output_db.find_one({"top_window_texts": task_output["top_window_texts"], "found_controls": task_output["found_controls"]})
+            if output_search is not None:
+                # This output is identical to another output, indiciating that maybe we've hit a "back" button or cancel on a dialog.
+                # Rather than inserting the output, insert a entry to the already discovered one
+                output_db.insert_one({
+                    "input_id": task_output["input_id"],
+                    "same_as": output_search["_id"]
+                })
 
-        if output_search is not None:
-            # This output is identical to another output, indiciating that maybe we've hit a "back" button or cancel on a dialog.
-            # Rather than inserting the output, insert a entry to the already discovered one
-            output_db.insert_one({
-                "input_id": task_output["input_id"],
-                "same_as": output_search["_id"]
-            })
-
-            print("Output of task {} same as {}, inserting same_as entry.".format(task_id, output_search["_id"]))
-            return
+                print("Output of task {} same as {}, inserting same_as entry.".format(task_id, output_search["_id"]))
+                return
 
         # Insert this output into our database
         output_db.insert_one(task_output)
 
+        # If the application has died, we can end here.
+        if not task_output["application_alive"]:
+            print("Application process ended after task {}.".format(task_id))
+            return
+
         # Now feed this data into our branch generator
         task_input = input_db.find_one({"_id": ObjectId(task_output["input_id"])})
         
-        # TODO: Insert new branches
         task_ids = []
 
         for branch in get_branches(task_input, task_output):
             result = input_db.insert_one(branch)
             task_ids.append(result.inserted_id)
         
-        # TODO: Spin up new machines
         for task_id in task_ids:
             start_machine(task_id)
         
