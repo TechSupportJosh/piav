@@ -5,6 +5,7 @@ from enum import IntEnum
 import pywinauto
 import pywinauto.controls.uia_controls as uia_controls
 from pywinauto.uia_defines import NoPatternInterfaceError
+from windows_tools.installed_software import get_software_list
 
 # pywinauto does not have this natively implemented, see pywinauto notes/WindowInteractionState.txt for explanation
 class WindowInteractionState(IntEnum):
@@ -21,6 +22,7 @@ def get_window_interaction_state(control):
         return None
 
 application_name = "FileZilla"
+full_install_name = "FileZilla Client 3.52.2"
 application = pywinauto.Application(backend="uia")
 application.start(r"C:\Users\piav\Documents\FileZilla.exe")
 
@@ -135,8 +137,12 @@ if not application.is_process_running():
 
     output = {
         "input_id": task_input["_id"],
-        "application_alive": False
+        "application_alive": False,
+        "program_installed": False
     }
+
+    # Check whether the program has successfully installed, or whether it's just been closed...
+    output["program_installed"] = full_install_name in map(lambda software: software["name"], get_software_list())
 else:
     print("Starting window enumeration...")
     enumeration = application.windows(top_level_only=False, enabled_only=True)
