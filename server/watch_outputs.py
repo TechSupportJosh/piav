@@ -4,12 +4,23 @@ import pymongo
 import argparse
 import sys
 import os
+import logging
+
+from CustomFormatter import CustomFormatter
 from output_handler import get_branches
 
 from bson.objectid import ObjectId
 
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
+
+task_logger = logging.getLogger("tasks")
+task_logger.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+ch.setFormatter(CustomFormatter())
+task_logger.addHandler(ch)
 
 client = pymongo.MongoClient("localhost", 27017)
 piav_db = client.piav
@@ -32,17 +43,16 @@ def start_machine(task_id: ObjectId):
         json.dump(task, input_file, cls=ObjectIDEncoder)
 
     # TODO: Spin machine up
-    print("Starting machine for task {}".format(task_id))
+    task_logger.info("Starting machine for task %s", task_id)
 
 class SendToMongo(PatternMatchingEventHandler):
     def on_created(self, event):
         # Check whether a output json exists with the same name
         # TODO: Error handling
         task_id = os.path.split(event.src_path)[1].split(".")[0]
-        print(os.path.join("output", task_id + ".json"))
         
         if not os.path.exists(os.path.join("output", task_id + ".json")):
-            print("New .complete file found but no JSON found - ignoring.")
+            task_logger.warning("New .complete file found but no JSON found - ignoring")
             return
         
         with open(os.path.join("output", task_id + ".json"), "r") as output_file:
@@ -61,7 +71,7 @@ class SendToMongo(PatternMatchingEventHandler):
                     "same_as": output_search["_id"]
                 })
 
-                print("Output of task {} same as {}, inserting same_as entry.".format(task_id, output_search["_id"]))
+                task_logger.info("Output of task %s same as %s, inserting same_as entry", task_id, output_search["_id"])
                 return
 
         # Insert this output into our database
@@ -69,7 +79,7 @@ class SendToMongo(PatternMatchingEventHandler):
 
         # If the application has died, we can end here.
         if not task_output["application_alive"]:
-            print("Application process ended after task {}.".format(task_id))
+            task_logger.info("Application process ended after task", task_id)
             return
 
         # Now feed this data into our branch generator
@@ -109,10 +119,10 @@ if __name__ == "__main__":
             "precursors": []
         })
 
-        print("Starting PIAV...")
+        task_logger.info("Starting PIAV...")
         start_machine(response.inserted_id)
 
-    print("Watching output directory...")
+    task_logger.info("Watching output directory...")
     observer = Observer()
     event_handler = SendToMongo(patterns=["*.complete"])
     observer.schedule(event_handler, "output")
@@ -121,6 +131,6 @@ if __name__ == "__main__":
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("Ending program...")
+        task_logger.info("Ending program...")
         observer.stop()
     observer.join()

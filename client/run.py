@@ -78,9 +78,6 @@ for index, stage in enumerate(task_input["precursors"]):
     print("Waiting for {} seconds.".format(delay))
     time.sleep(delay)
 
-# Now we've executed all input precusors, check whether the application is still available
-# For example, clicking a "Cancel" button may close down the application
-# application_alive
 # TODO
 
 interactive_control_types = [uia_controls.ButtonWrapper]
@@ -115,7 +112,8 @@ def attempt_unique_id(control):
             "auto_id": control.automation_id()
         }
 
-# Check whether the application is still alive (we may have closed it down!)
+# Now we've executed all input precusors, check whether the application is still available
+# For example, clicking a "Cancel" button may close down the application
 if not application.is_process_running():
     print("Application's process has ended.")
 

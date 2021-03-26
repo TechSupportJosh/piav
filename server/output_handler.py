@@ -3,6 +3,16 @@ import copy
 import os
 import sys
 import itertools
+import logging
+from CustomFormatter import CustomFormatter
+
+output_logger = logging.getLogger("output")
+output_logger.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+ch.setFormatter(CustomFormatter())
+output_logger.addHandler(ch)
 
 def add_button_press_to_precusor_list(branches, precursor_list, button_control):
     # Add new precursor, click on this button
@@ -21,20 +31,22 @@ def add_button_press_to_precusor_list(branches, precursor_list, button_control):
     })
 
 def get_branches(input_task, output_task):
+    output_logger.info("Processing output of task %s", input_task["_id"])
+
+    output_controls = output_task["found_controls"]
     prepend_precursor = input_task["precursors"]
 
     branches = []
-    output_controls = output_task["found_controls"]
 
-    print("Input elements: ", output_controls)
+    output_logger.debug("Input elements: %s", str(output_controls))
 
     # Create a list of all the different types of controls
     buttons = list(filter(lambda element: element["type"] == "Button", output_controls))
     radio_buttons = list(filter(lambda element: element["type"] == "RadioButton", output_controls))
     checkboxes = list(filter(lambda element: element["type"] == "CheckBox", output_controls))
 
-    print("Buttons: ", buttons)
-    print("Radio Buttons: ", radio_buttons)
+    output_logger.debug("Buttons: %s", str(buttons))
+    output_logger.debug("Radio Buttons: %s", str(radio_buttons))
 
     # TODO: What if we have radio buttons and checkboxes on the same page?
 
@@ -89,6 +101,6 @@ def get_branches(input_task, output_task):
             
             add_button_press_to_precusor_list(branches, new_precursors, button_control)
 
-    print("Branches: ", branches)
+    output_logger.debug("Branches: %s", str(branches))
 
     return branches
