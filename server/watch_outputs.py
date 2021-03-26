@@ -79,7 +79,10 @@ class SendToMongo(PatternMatchingEventHandler):
 
         # If the application has died, we can end here.
         if not task_output["application_alive"]:
-            task_logger.info("Application process ended after task", task_id)
+            if task_output["program_installed"]:
+                task_logger.info("Application successfully installed after task %s", task_id)
+            else:
+                task_logger.info("Application process ended after task %s", task_id)
             return
 
         # Now feed this data into our branch generator
