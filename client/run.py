@@ -78,7 +78,19 @@ for index, stage in enumerate(task_input["precursors"]):
     print("Waiting for {} seconds.".format(delay))
     time.sleep(delay)
 
-# TODO
+# Now check whether there's a progress bar on the screen (for example, extracting resources)
+# before enumerating options
+progress_bar = application.window(control_type="ProgressBar", top_level_only=False)
+if progress_bar.exists():
+    # Resolve the reference to a ProgressBar object
+    progress_bar = progress_bar.wait("exists")
+
+    # Wait until value is 100%
+    progress_bar_value = progress_bar.legacy_properties().get("Value", "100%")
+    while progress_bar_value != "100%":
+        progress_bar_value = progress_bar.legacy_properties().get("Value", "100%")
+        print("Waiting for progress bar to reach 100%, current value: ", progress_bar_value)
+        time.sleep(5)
 
 interactive_control_types = [uia_controls.ButtonWrapper]
 
@@ -99,6 +111,10 @@ def is_interactive_control(control):
     if control.parent().friendly_class_name() in ["ScrollBar", "TitleBar"]:
         return False
     
+    # Although not great, for now, we can attempt to ignore file buttons
+    if "Browse" in control.texts():
+        return False
+
     return True
 
 def get_debug_info(control):
