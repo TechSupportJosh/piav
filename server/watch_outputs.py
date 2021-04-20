@@ -57,7 +57,17 @@ class SendToMongo(PatternMatchingEventHandler):
         
         with open(os.path.join("output", task_id + ".json"), "r") as output_file:
             task_output = json.load(output_file)
+
+        kernel_capture_data = None
+
+        try:
+            with open(os.path.join("output", task_id + "_fibratus.json")) as fibratus_file:
+                kernel_capture_data = json.load(fibratus_file)
+        except FileNotFoundError:
+            task_logger.info("No kernel capture for %s found", task_id)
         
+        task_output["kernel_capture_data"] = kernel_capture_data
+
         # Only consider duplicate outputs if they're alive 
         if task_output["application_alive"]:
             # Detect whether this output is identical to another output, in which case we don't need to process it

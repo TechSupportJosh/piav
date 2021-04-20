@@ -1,6 +1,8 @@
 server/input/*.json
 server/output/*.json
 server/output/*.complete
+client/fibratus_capture.json
+*.exe
 
 # Python gitignores
   

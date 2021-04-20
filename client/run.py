@@ -1,11 +1,15 @@
 import json
 import sys
 import time
+import subprocess
+import os
+import signal
+import psutil
 from enum import IntEnum
 import pywinauto
 import pywinauto.controls.uia_controls as uia_controls
 from pywinauto.uia_defines import NoPatternInterfaceError
-from windows_tools.installed_software import get_software_list
+from windows_tools.installed_software import get_installed_software
 
 # pywinauto does not have this natively implemented, see pywinauto notes/WindowInteractionState.txt for explanation
 class WindowInteractionState(IntEnum):
@@ -37,6 +41,8 @@ try:
 except pywinauto.timings.TimeoutError:
     print("Process is still alive.")
 
+print(application)
+
 # Now attempt to find a top window, if not, we may have the same case as above
 try:
     top_window = application.top_window()
@@ -52,9 +58,27 @@ except RuntimeError:
 with open("../server/input/{}.json".format(sys.argv[1]), "r") as task_input_json:
     task_input = json.load(task_input_json)
 
+fibratus_process = None
+
+# Delete old fibratus output if it exists
+try:
+    os.remove("fibratus_capture.json")
+except FileNotFoundError:
+    pass
+
+# Kill old fibratus process
+for proc in psutil.process_iter():
+    if proc.name() == "fibratus.exe":
+        proc.kill()
+
 # Now execute task_input 
 for index, stage in enumerate(task_input["precursors"]):
     print("Now executing precursor {} of {}.".format(index + 1, len(task_input["precursors"])))
+
+    # If this is the final precursor, then we should start tracking registry changes
+    if index + 1 == len(task_input["precursors"]):
+        print("Starting fibratus capturing...")
+        fibratus_process = subprocess.Popen(["fibratus", "run", "ps.name = 'FileZilla.exe' and kevt.category in ('net','file','registry')", "-f", "capture", "--filament.path", os.getcwd()], cwd=os.getcwd())
 
     # Find the control referenced
     control_reference = application.window(**stage["reference"], top_level_only=False)
@@ -93,6 +117,21 @@ if progress_bar.exists():
         progress_bar_value = progress_bar.legacy_properties().get("Value", "100%")
         print("Waiting for progress bar to reach 100%, current value: ", progress_bar_value)
         time.sleep(5)
+
+if fibratus_process is not None:
+    print("Stopping fibratus...")
+    # Send CTRL+C to the fibratus process to stop it
+    # However, sending CTRL+C to this subprocess also sends it to this process
+    # Therefore, we should wait for the signal, trap it and ignore it. The subprocess
+    # will be killed however we will continue to exist
+    try:
+        fibratus_process.send_signal(signal.CTRL_C_EVENT)
+        time.sleep(60)
+    except KeyboardInterrupt:
+        print("Captured KeyboardInterrupt (SIGINT)")
+
+    time.sleep(15)
+    print("Fibratus stopped")
 
 interactive_control_types = [uia_controls.ButtonWrapper]
 
@@ -142,7 +181,7 @@ if not application.is_process_running():
     }
 
     # Check whether the program has successfully installed, or whether it's just been closed...
-    output["program_installed"] = full_install_name in map(lambda software: software["name"], get_software_list())
+    output["program_installed"] = full_install_name in map(lambda software: software["name"], get_installed_software())
 else:
     print("Starting window enumeration...")
     enumeration = application.windows(top_level_only=False, enabled_only=True)
@@ -168,6 +207,12 @@ else:
 
     # Finally, kill the application
     application.kill(soft=False)
+
+# If a fiberatus_output.json exists, rename it
+try:
+    os.rename("fibratus_capture.json", f"../server/output/{task_input['_id']}_fibratus.json")
+except FileNotFoundError:
+    print("No Fiberatus output found")
 
 # Write our output
 with open(f"../server/output/{task_input['_id']}.json", "w") as task_output_file:
