@@ -35,13 +35,14 @@ class Task(BaseModel):
 
 
 class UIControl(BaseModel):
-    control_type: str = Field(..., alias="type")
+    control_type: str
     reference: Reference
     _debug: Dict[str, any]
 
 
 class WindowEnumeration(BaseModel):
     application_alive: bool
+    program_installed: bool
     top_window_texts: List[str]
     found_controls: List[UIControl]
 
@@ -54,7 +55,7 @@ class KernelEvent(BaseModel):
 class KernelEvents(BaseModel):
     net: List[KernelEvent]
     file: List[KernelEvent]
-    reg: List[KernelEvent]
+    registry: List[KernelEvent]
 
 
 class TaskOutput(BaseModel):

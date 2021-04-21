@@ -206,7 +206,6 @@ if not application.is_process_running():
     print("Application's process has ended.")
 
     output = {
-        "input_id": task_input["_id"],
         "application_alive": False,
         "program_installed": False,
     }
@@ -222,10 +221,10 @@ else:
     print("Finished window enumeration...")
 
     output = {
-        "input_id": task_input["_id"],
         "application_alive": True,
         "top_window_texts": sorted(application.top_window().children_texts()),
         "found_controls": [],
+        "program_installed": False,
     }
 
     # Now we need to output the list of possible controls
@@ -234,7 +233,7 @@ else:
 
         output["found_controls"].append(
             {
-                "type": control.friendly_class_name(),
+                "control_type": control.friendly_class_name(),
                 "reference": attempt_unique_id(control),
                 "_debug": get_debug_info(control),
             }
@@ -243,7 +242,7 @@ else:
     # Finally, kill the application
     application.kill(soft=False)
 
-fibratus_output = {"reg": [], "file": [], "net": []}
+fibratus_output = {"registry": [], "file": [], "net": []}
 
 try:
     with open("fibratus_capture.json", "r") as fibratus_output_file:

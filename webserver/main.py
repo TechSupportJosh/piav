@@ -13,6 +13,8 @@ from logs import ClientFormatter, CustomFormatter, LogEndpointFilter
 
 from database import close_db, connect_db, get_db_instance
 
+from output_handler import get_branches
+
 colorama_init()
 
 # Output logger
@@ -71,7 +73,14 @@ async def root():
 async def get_task(task_id: str):
     """Returns the task with the ID task_id"""
     db = await get_db_instance()
-    task = db.input.find_one({"_id": ObjectId(task_id)})
+    task = await db.input.find_one({"_id": ObjectId(task_id)})
+    return task
+
+
+async def insert_task(task):
+    """Inserts a task"""
+    db = await get_db_instance()
+    task = await db.input.insert_one(task)
     return task
 
 
@@ -96,6 +105,33 @@ async def update_queue_status(task_id: str, status: str):
 async def queue_entry(task_id: str):
     db = await get_db_instance()
     await db.queue.insert_one({"_id": ObjectId(task_id), "status": "waiting"})
+
+
+async def insert_output(task_id: str, task_output: models.TaskOutput):
+    db = await get_db_instance()
+    output = {"_id": ObjectId(task_id)}
+    output.update(task_output.dict())
+    await db.output.insert_one(output)
+
+
+async def insert_same_output(task_id: str, duplicate_output_id: str):
+    db = await get_db_instance()
+    output = {"_id": ObjectId(task_id), "same_as": duplicate_output_id}
+    await db.output.insert_one(output)
+
+
+async def find_duplicate_result(task_output: models.TaskOutput):
+    db = await get_db_instance()
+    window_enumeration = task_output.window_enumeration.dict()
+    print(window_enumeration)
+    result = await db.output.find_one(
+        {
+            "top_window_texts": window_enumeration["top_window_texts"],
+            "found_controls": window_enumeration["found_controls"],
+        }
+    )
+
+    return result
 
 
 async def initialise_task():
@@ -151,12 +187,58 @@ async def submit_task(task_id: str, task_output: models.TaskOutput):
         "Task %s has been completed. Kernel events received: %d",
         task_id,
         len(task_output.kernel_events.file)
-        + len(task_output.kernel_events.reg)
+        + len(task_output.kernel_events.registry)
         + len(task_output.kernel_events.net),
     )
 
     # Mark queue entry as done
-    await update_queue_status(task_id, "finished")
+    await update_queue_status(task_id, "waiting")
+
+    # Only consider duplicate outputs if they're alive
+    if task_output.window_enumeration.application_alive:
+        # Detect whether this output is identical to another output, in which case we don't need to process it
+        duplicate_result = await find_duplicate_result(task_output)
+
+        if duplicate_result is not None:
+            # This output is identical to another output, indiciating that maybe we've hit a "back" button or cancel on a dialog.
+            # Rather than inserting the output, insert a entry to the already discovered one
+            await insert_same_output(task_id, str(duplicate_result["_id"]))
+
+            process_logger.info(
+                "Output of task %s is the same as %s, inserting same_as entry",
+                task_id,
+                str(duplicate_result["_id"]),
+            )
+
+            return {}
+
+    # Insert output into the database
+    await insert_output(task_id, task_output)
+
+    # If the application has died, we can end here
+    if not task_output.window_enumeration.application_alive:
+        if task_output.window_enumeration.program_installed:
+            process_logger.info(
+                "Application successfully installed after task %s", task_id
+            )
+        else:
+            process_logger.info("Application process ended after task %s", task_id)
+
+        return {}
+
+    task_input = await get_task(task_id)
+
+    task_ids = []
+
+    process_logger.info("Calculating branches for %s", task_id)
+
+    for branch in get_branches(task_input, task_output.dict()["window_enumeration"]):
+        result = await insert_task(branch)
+        task_ids.append(result.inserted_id)
+        process_logger.info(
+            "Queuing task %s, branched from %s", result.inserted_id, task_id
+        )
+        await queue_entry(result.inserted_id)
 
     return {}
 
