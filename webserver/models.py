@@ -39,7 +39,7 @@ class WindowEnumeration(BaseModel):
 
 class KernelEvent(BaseModel):
     event_name: str
-    params: Dict[str, any]
+    params: Dict[str, Any]
 
 
 class KernelEvents(BaseModel):
@@ -51,3 +51,8 @@ class KernelEvents(BaseModel):
 class TaskOutput(BaseModel):
     window_enumeration: WindowEnumeration
     kernel_events: KernelEvents
+
+
+class LogMessage(BaseModel):
+    message: str
+    levelno: int

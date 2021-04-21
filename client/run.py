@@ -8,22 +8,36 @@ import psutil
 from enum import IntEnum
 import pywinauto
 import pywinauto.controls.uia_controls as uia_controls
-from pywinauto.uia_defines import NoPatternInterfaceError
 from windows_tools.installed_software import get_installed_software
+from WindowInteractionState import WindowInteractionState, get_window_interaction_state
 
-# pywinauto does not have this natively implemented, see pywinauto notes/WindowInteractionState.txt for explanation
-class WindowInteractionState(IntEnum):
-    Running = 0
-    Closing = 1
-    ReadyForUserInteraction = 2
-    BlockedByModalWindow = 3
-    NotResponding = 4
+import logging
+import requests
+from JSONHTTPHandler import JSONHTTPHandler
 
-def get_window_interaction_state(control):
-    try:
-        return control.iface_window.CurrentWindowInteractionState
-    except NoPatternInterfaceError:
-        return None
+API_URL = "http://172.17.48.1:8000"
+
+# Request task ID
+# TODO: Add error handling
+response = requests.post(API_URL + "/request_task")
+
+if response.status_code == 404:
+    print("No task to do")
+    sys.exit(-1)
+
+task_input = response.json()
+
+logger = logging.getLogger("logger")
+logger.setLevel(logging.DEBUG)
+
+http_handler = JSONHTTPHandler(
+    "http://172.17.48.1:8000",
+    f"/log/{task_input['_id']}"
+)
+http_handler.setLevel(logging.DEBUG)
+logger.addHandler(http_handler)
+
+logger.info("Received task, starting application...")
 
 application_name = "FileZilla"
 full_install_name = "FileZilla Client 3.52.2"
@@ -52,11 +66,6 @@ except RuntimeError:
     # If the application has already exited, they may have spawned another process, therefore we'll try and find the
     # application again before erroring
     application.connect(best_match=application_name)
-
-
-# Load our input JSON before enumerating
-with open("../server/input/{}.json".format(sys.argv[1]), "r") as task_input_json:
-    task_input = json.load(task_input_json)
 
 fibratus_process = None
 

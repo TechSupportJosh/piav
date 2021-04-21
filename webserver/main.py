@@ -1,28 +1,43 @@
-from fastapi import FastAPI, HTTPException, responses
-from database import input_collection, output_collection, queue_collection
-from bson import ObjectId
-import uvicorn
-from uvicorn.config import LOGGING_CONFIG
-import models
-
 import logging
-from CustomFormatter import CustomFormatter
+import typing
 
-from colorama import init as colorama_init, Fore
+import uvicorn
+from bson import ObjectId
+from colorama import Fore
+from colorama import init as colorama_init
+from fastapi import FastAPI, HTTPException, responses
+from uvicorn.config import LOGGING_CONFIG
+
+import models
+from logs import ClientFormatter, CustomFormatter, LogEndpointFilter
+
+from database import close_db, connect_db, get_db_instance
 
 colorama_init()
 
-# Setup our task logger
-task_logger = logging.getLogger("tasks")
-task_logger.setLevel(logging.DEBUG)
+# Output logger
+process_logger = logging.getLogger("processor")
+process_logger.setLevel(logging.DEBUG)
 
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(CustomFormatter())
+process_logger.addHandler(ch)
+
+# Task logger
+task_logger = logging.getLogger("task")
+task_logger.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+ch.setFormatter(ClientFormatter())
 task_logger.addHandler(ch)
 
 app = FastAPI()
 
+# https://github.com/encode/uvicorn/blob/master/uvicorn/config.py#L86
+# https://docs.python.org/3/library/logging.config.html#user-defined-objects
+LOGGING_CONFIG["filters"] = {"logendpointfilter": {"()": "logs.LogEndpointFilter"}}
 # Override fastapi's formatters to use our pretty format
 LOGGING_CONFIG["formatters"] = {
     "default": {
@@ -45,6 +60,7 @@ LOGGING_CONFIG["formatters"] = {
         "datefmt": "%H:%M:%S",
     },
 }
+LOGGING_CONFIG["handlers"]["access"]["filters"] = ["logendpointfilter"]
 
 
 @app.get("/")
@@ -54,12 +70,20 @@ async def root():
 
 async def get_task(task_id: str):
     """Returns the task with the ID task_id"""
-    return await input_collection.find_one({"_id": ObjectId(task_id)})
+    db = await get_db_instance()
+    task = db.input.find_one({"_id": ObjectId(task_id)})
+    return task
 
 
 async def get_queued_task():
     """Returns a single queued task that has not yet started."""
-    return await queue_collection.find_one({"status": "waiting"})
+    db = await get_db_instance()
+    queue_entry = await db.queue.find_one({"status": "waiting"})
+    if queue_entry is None:
+        return None
+    task = await db.input.find_one({"_id": ObjectId(queue_entry["task_id"])})
+
+    return task
 
 
 @app.post(
@@ -77,10 +101,10 @@ async def request_task():
 
     # If no task is currently waiting, just return 404
     if task is None:
-        task_logger.debug("Task requested however no tasks are currently queued.")
+        process_logger.debug("Task requested however no tasks are currently queued.")
         raise HTTPException(status_code=404)
 
-    task_logger.info("Allocated task %s to machine ", task["_id"])
+    process_logger.info("Allocated task %s to machine ", task["_id"])
     return task
 
 
@@ -98,13 +122,13 @@ async def submit_task(task_id: str, task_output: models.TaskOutput):
 
     # If no task is currently waiting, just return 404
     if task is None:
-        task_logger.warn(
+        process_logger.warn(
             "Output of task %s was submitted however no tasks exist with that ID.",
             task_id,
         )
         raise HTTPException(status_code=404)
 
-    task_logger.info(
+    process_logger.info(
         "Task %s has been completed. Kernel events received: %d",
         task_id,
         len(task_output.kernel_events.file)
@@ -117,5 +141,22 @@ async def submit_task(task_id: str, task_output: models.TaskOutput):
     return {}
 
 
+@app.post("/log/{task_id}")
+async def task_log(task_id: str, request: models.LogMessage):
+    """Log"""
+    task_logger.log(request.levelno, request.message, extra={"task_id": task_id})
+    return {}
+
+
+@app.on_event("startup")
+async def startup():
+    await connect_db()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await close_db()
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, log_config=LOGGING_CONFIG)
+    uvicorn.run(app, host="0.0.0.0", log_config=LOGGING_CONFIG)
