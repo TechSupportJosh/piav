@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict, Any
-
-from pydantic import BaseModel, Field
+from bson.objectid import ObjectId
+from pydantic import BaseModel, Field, validator
 
 
 class Reference(BaseModel):
@@ -21,8 +21,17 @@ class Precursor(BaseModel):
 
 
 class Task(BaseModel):
-    _id: str
+    id: str = Field(alias="_id")
     precursors: List[Precursor]
+
+    @validator("id", pre=True)  # each_item=True)
+    def cast_values(cls, data):
+        if isinstance(data, ObjectId):
+            return str(data)
+        return data
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 class UIControl(BaseModel):

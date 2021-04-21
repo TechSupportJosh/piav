@@ -76,14 +76,33 @@ async def get_task(task_id: str):
 
 
 async def get_queued_task():
-    """Returns a single queued task that has not yet started."""
+    """Returns a single queued task that has not yet started and will mark it as started."""
     db = await get_db_instance()
     queue_entry = await db.queue.find_one({"status": "waiting"})
     if queue_entry is None:
         return None
-    task = await db.input.find_one({"_id": ObjectId(queue_entry["task_id"])})
+
+    await update_queue_status(queue_entry["_id"], "started")
+    task = await db.input.find_one({"_id": queue_entry["_id"]})
 
     return task
+
+
+async def update_queue_status(task_id: str, status: str):
+    db = await get_db_instance()
+    await db.queue.update_one({"_id": ObjectId(task_id)}, {"$set": {"status": status}})
+
+
+async def queue_entry(task_id: str):
+    db = await get_db_instance()
+    await db.queue.insert_one({"_id": ObjectId(task_id), "status": "waiting"})
+
+
+async def initialise_task():
+    db = await get_db_instance()
+    response = await db.input.insert_one({"precursors": []})
+    # Add our newest one to the queue
+    await queue_entry(str(response.inserted_id))
 
 
 @app.post(
@@ -104,7 +123,7 @@ async def request_task():
         process_logger.debug("Task requested however no tasks are currently queued.")
         raise HTTPException(status_code=404)
 
-    process_logger.info("Allocated task %s to machine ", task["_id"])
+    process_logger.info("Allocated task %s to machine", task["_id"])
     return task
 
 
@@ -136,9 +155,16 @@ async def submit_task(task_id: str, task_output: models.TaskOutput):
         + len(task_output.kernel_events.net),
     )
 
-    # TODO: Add parsing back
+    # Mark queue entry as done
+    await update_queue_status(task_id, "finished")
 
     return {}
+
+
+@app.post("/initialise")
+async def initialise():
+    # TODO: Add form feature so they can submit a new exe
+    await initialise_task()
 
 
 @app.post("/log/{task_id}")
