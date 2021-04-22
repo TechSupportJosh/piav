@@ -1,3 +1,5 @@
+from bson.objectid import ObjectId
+import pydantic
 import uvicorn
 from colorama import Fore
 from fastapi import FastAPI
@@ -46,6 +48,9 @@ LOGGING_CONFIG["formatters"] = {
     },
 }
 LOGGING_CONFIG["handlers"]["access"]["filters"] = ["logendpointfilter"]
+
+
+pydantic.json.ENCODERS_BY_TYPE[ObjectId] = str
 
 
 @app.get("/")
