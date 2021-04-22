@@ -1,6 +1,9 @@
 from typing import Optional, List, Dict, Any
 from bson.objectid import ObjectId
 from pydantic import BaseModel, Field, validator
+from pydantic.main import BaseConfig
+import pydantic
+from bson.objectid import ObjectId
 
 
 class Reference(BaseModel):
@@ -21,17 +24,7 @@ class Precursor(BaseModel):
 
 
 class Task(BaseModel):
-    id: str = Field(alias="_id")
     precursors: List[Precursor]
-
-    @validator("id", pre=True)  # each_item=True)
-    def cast_values(cls, data):
-        if isinstance(data, ObjectId):
-            return str(data)
-        return data
-
-    class Config:
-        allow_population_by_field_name = True
 
 
 class UIControl(BaseModel):
@@ -67,11 +60,11 @@ class QueueEntry(BaseModel):
     id: str = Field(alias="_id")
     status: str
 
-    @validator("id", pre=True)  # each_item=True)
-    def cast_values(cls, data):
-        if isinstance(data, ObjectId):
-            return str(data)
-        return data
+    @validator("id", pre=True, each_item=True)
+    def convert_id(cls, value):
+        if isinstance(value, ObjectId):
+            return str(value)
+        return value
 
 
 class LogMessage(BaseModel):
