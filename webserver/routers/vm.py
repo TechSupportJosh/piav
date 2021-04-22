@@ -158,16 +158,14 @@ async def submit_task(
     return {}
 
 
-@router.post("/initialise")
-async def initialise(db: AsyncIOMotorDatabase = Depends(get_db_instance)):
-    # TODO: Add form feature so they can submit a new exe
-    # TODO: Should this be moved to the portal?
-    result = await db.input.insert_one({"precursors": []})
-    await db.queue.insert_one({"_id": result.inserted_id, "status": "waiting"})
-
-
-@router.post("/log/{task_id}")
+@router.post(
+    "/log/{task_id}",
+    responses={
+        200: {"description": "Successfully sent log.", "model": {}},
+    },
+    name="Process VM Log",
+)
 async def task_log(task_id: str, request: models.LogMessage):
-    """Log"""
+    """Process a log message from a VM."""
     task_logger.log(request.levelno, request.message, extra={"task_id": task_id})
     return {}
