@@ -7,6 +7,9 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/",
     component: TaskQueue,
+    meta: {
+      navigationLabel: "Queued Tasks",
+    },
   },
   {
     path: "/task/:taskId",
