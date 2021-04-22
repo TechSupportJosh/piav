@@ -3,22 +3,75 @@ export interface KernelEvent {
   params: Record<string, any>;
 }
 
-export interface TaskOutput {
-  window_enumeration: {
-    application_alive: boolean;
-    program_installed: boolean;
-    top_window_texts: string[];
-    found_controls: {
-      control_type: string;
-      reference: {
-        auto_id: string;
-      };
-      _debug: Record<string, any>;
-    }[];
+export interface NetworkEvent {
+  event_name: string;
+  params: {
+    dip: string;
+    sip: string;
+    dport: number;
+    sport: number;
+    l4_proto: "tcp" | "udp";
+    dport_name?: string;
+    sport_name?: string;
+    size?: number;
   };
+}
+
+export interface RegistryEvent {
+  event_name: string;
+  params: {
+    key_name: string;
+    status: string;
+
+    // RegSetValue
+    value?: string;
+    type?: "REG_DWORD" | "REG_QWORD" | "REG_SZ" | "REG_EXPAND_SZ" | "REG_MULTI_SZ" | "REG_BINARY" | "UNKNOWN";
+  };
+}
+
+export interface FileEvent {
+  event_name: "CreateFile" | "ReadFile" | "WriteFile" | "DeleteFile" | "RenameFile" | "CloseFile" | "SetFileInformation" | "EnumDirectory";
+  params: {
+    file_object: string;
+    file_name: string;
+    irp: number;
+
+    // Everything except EnumDirectory
+    type?: "file" | "directory" | "pipe" | "console" | "other" | "unknown";
+
+    // CreateFile
+    operation?: "supersede" | "open" | "create" | "openif" | "overwrite" | "overwriteif";
+    share_mask?: string;
+
+    // WriteFile / ReadFile
+    io_size?: number;
+    offset?: number;
+
+    // SetFileInformation
+    class?: string;
+
+    // EnumDirectory
+    dir?: string;
+  };
+}
+
+export interface WindowEnumeration {
+  application_alive: boolean;
+  program_installed: boolean;
+  top_window_texts: string[];
+  found_controls: {
+    control_type: string;
+    reference: {
+      auto_id: string;
+    };
+    _debug: Record<string, any>;
+  }[];
+}
+export interface TaskOutput {
+  window_enumeration: WindowEnumeration;
   kernel_events: {
-    net: KernelEvent[];
-    file: KernelEvent[];
-    registry: KernelEvent[];
+    net: NetworkEvent[];
+    file: FileEvent[];
+    registry: RegistryEvent[];
   };
 }
