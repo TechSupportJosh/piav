@@ -24,7 +24,14 @@ class Precursor(BaseModel):
 
 
 class Task(BaseModel):
+    id: str = Field(alias="_id")
     precursors: List[Precursor]
+
+    @validator("id", pre=True, each_item=True)
+    def convert_id(cls, value):
+        if isinstance(value, ObjectId):
+            return str(value)
+        return value
 
 
 class UIControl(BaseModel):
@@ -36,8 +43,9 @@ class UIControl(BaseModel):
 class WindowEnumeration(BaseModel):
     application_alive: bool
     program_installed: bool
-    top_window_texts: List[str]
-    found_controls: List[UIControl]
+    base64_images: List[str]
+    top_window_texts: Optional[List[str]]
+    found_controls: Optional[List[UIControl]]
 
 
 class KernelEvent(BaseModel):

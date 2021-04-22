@@ -96,7 +96,7 @@ async def submit_task(
     )
 
     # Mark queue entry as done
-    await update_queue_status(task_id, "waiting")
+    await update_queue_status(db, task_id, "waiting")
 
     # Only consider duplicate outputs if they're alive
     if task_output.window_enumeration.application_alive:
@@ -128,7 +128,7 @@ async def submit_task(
     output = {"_id": ObjectId(task_id)}
     output.update(task_output.dict())
 
-    await db.output.insert_one(task_id, output)
+    await db.output.insert_one(output)
 
     # If the application has died, we can end here
     if not task_output.window_enumeration.application_alive:

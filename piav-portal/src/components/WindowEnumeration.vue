@@ -11,31 +11,44 @@
       </tr>
     </tbody>
   </table>
-  <h3>Window Text</h3>
-  <ul>
-    <li v-for="(text, index) in data.top_window_texts" :key="index">{{ text }}</li>
-  </ul>
-  <h3>Found Controls</h3>
-  <table class="table">
-    <thead>
-      <tr>
-        <th scope="col">Control Type</th>
-        <th scope="col">Reference</th>
-        <th scope="col">Debug Info</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-for="(control, index) in data.found_controls" :key="index">
-        <td>{{ control.control_type }}</td>
-        <td>{{ control.reference }}</td>
-        <td></td>
-      </tr>
-    </tbody>
-  </table>
+  <template v-if="data.top_window_texts && data.found_controls && data.base64_images">
+    <h3>Window Text</h3>
+    <ul>
+      <li v-for="(text, index) in data.top_window_texts" :key="index">{{ text }}</li>
+    </ul>
+    <h3>Screenshot</h3>
+    <div class="mb-4">
+      <img :src="`data:image/jpeg;charset=utf-8;base64,${data.base64_images[currentImageIndex]}`" />
+      <nav>
+        <ul class="pagination">
+          <li class="page-item" :class="{ active: index === currentImageIndex }" v-for="(image, index) in data.base64_images" :key="index">
+            <a class="page-link" href="#" @click.prevent="currentImageIndex = index">{{ convertImageIndexToLabel(index) }}</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+    <h3>Found Controls</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Control Type</th>
+          <th scope="col">Reference</th>
+          <th scope="col">Debug Info</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(control, index) in data.found_controls" :key="index">
+          <td>{{ control.control_type }}</td>
+          <td>{{ control.reference }}</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </template>
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from "vue";
+import { defineComponent, PropType, ref } from "vue";
 import { WindowEnumeration } from "../models/types/TaskOutput";
 
 export default defineComponent({
@@ -46,8 +59,23 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const currentImageIndex = ref(0);
+
+    const convertImageIndexToLabel = (index: number) => {
+      switch (index) {
+        case 0:
+          return "Start";
+        case props.data.base64_images!.length - 1:
+          return "End";
+        default:
+          return index.toString();
+      }
+    };
+
     return {
       data: props.data,
+      currentImageIndex,
+      convertImageIndexToLabel,
     };
   },
 });

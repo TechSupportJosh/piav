@@ -1,3 +1,4 @@
+from io import BytesIO
 import json
 import sys
 import time
@@ -5,6 +6,7 @@ import subprocess
 import os
 import signal
 import psutil
+import base64
 from enum import IntEnum
 import pywinauto
 import pywinauto.controls.uia_controls as uia_controls
@@ -15,7 +17,7 @@ import logging
 import requests
 from JSONHTTPHandler import JSONHTTPHandler
 
-API_URL = "http://172.17.48.1:8000"
+API_URL = "http://172.19.112.1:8000/vm"
 
 # Request task ID
 # TODO: Add error handling
@@ -30,16 +32,26 @@ task_input = response.json()
 logger = logging.getLogger("logger")
 logger.setLevel(logging.DEBUG)
 
-http_handler = JSONHTTPHandler("http://172.17.48.1:8000", f"/log/{task_input['_id']}")
+http_handler = JSONHTTPHandler(API_URL, f"/log/{task_input['_id']}")
 http_handler.setLevel(logging.DEBUG)
 logger.addHandler(http_handler)
 
 logger.info("Received task, starting application...")
 
+base64_images = []
+
 application_name = "FileZilla"
 full_install_name = "FileZilla Client 3.52.2"
 application = pywinauto.Application(backend="uia")
 application.start(r"C:\Users\piav\Documents\FileZilla.exe")
+
+def get_screenshot_base64():
+    # Take image of the current top window
+    # https://stackoverflow.com/a/31826470
+    image = application.top_window().capture_as_image()
+    buffered = BytesIO()
+    image.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode("utf-8") 
 
 try:
     application.wait_for_process_exit(timeout=3)
@@ -76,6 +88,9 @@ except FileNotFoundError:
 for proc in psutil.process_iter():
     if proc.name() == "fibratus.exe":
         proc.kill()
+
+# Take a picture of the application as it's started
+base64_images.append(get_screenshot_base64())
 
 # Now execute task_input
 for index, stage in enumerate(task_input["precursors"]):
@@ -128,6 +143,9 @@ for index, stage in enumerate(task_input["precursors"]):
     delay = stage.get("delay_after_action", 0)
     print("Waiting for {} seconds.".format(delay))
     time.sleep(delay)
+
+    # After running this precursor, take a screenshot
+    base64_images.append(get_screenshot_base64())
 
 # Now check whether there's a progress bar on the screen (for example, extracting resources)
 # before enumerating options
@@ -208,6 +226,7 @@ if not application.is_process_running():
     output = {
         "application_alive": False,
         "program_installed": False,
+        "base64_images": base64_images
     }
 
     # Check whether the program has successfully installed, or whether it's just been closed...
@@ -222,9 +241,10 @@ else:
 
     output = {
         "application_alive": True,
+        "program_installed": False,
+        "base64_images": base64_images,
         "top_window_texts": sorted(application.top_window().children_texts()),
         "found_controls": [],
-        "program_installed": False,
     }
 
     # Now we need to output the list of possible controls

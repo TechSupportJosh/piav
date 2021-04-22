@@ -58,8 +58,9 @@ export interface FileEvent {
 export interface WindowEnumeration {
   application_alive: boolean;
   program_installed: boolean;
-  top_window_texts: string[];
-  found_controls: {
+  top_window_texts?: string[];
+  base64_images?: string[];
+  found_controls?: {
     control_type: string;
     reference: {
       auto_id: string;
