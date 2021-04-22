@@ -19,7 +19,7 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
-import { RegistryEvent } from "../typings/TaskOutput";
+import { RegistryEvent } from "../models/types/TaskOutput";
 
 export default defineComponent({
   props: {
