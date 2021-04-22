@@ -6,9 +6,9 @@ db_client: AsyncIOMotorClient = None
 # https://stackoverflow.com/a/65548346
 
 
-async def get_db_instance() -> AsyncIOMotorDatabase:
-    """Return a database instance."""
-    return db_client.piav
+# async def get_db_instance() -> AsyncIOMotorDatabase:
+#     """Return a database instance."""
+#     return db_client.piav
 
 
 async def connect_db():
@@ -21,3 +21,7 @@ async def connect_db():
 async def close_db():
     """Close database connection."""
     db_client.close()
+
+
+def get_db_instance()-> AsyncIOMotorDatabase:
+    yield db_client.piav

@@ -63,6 +63,17 @@ class TaskOutput(BaseModel):
     kernel_events: KernelEvents
 
 
+class QueueEntry(BaseModel):
+    id: str = Field(alias="_id")
+    status: str
+
+    @validator("id", pre=True)  # each_item=True)
+    def cast_values(cls, data):
+        if isinstance(data, ObjectId):
+            return str(data)
+        return data
+
+
 class LogMessage(BaseModel):
     message: str
     levelno: int
