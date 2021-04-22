@@ -60,7 +60,7 @@ async def get_task_output(
     if response is None:
         return HTTPException(status_code=404, detail="Task does not exist.")
 
-    response = await db.output.find_one({"_id": ObjectId(task_id)})
+    response = await db.output.find_one({"_id": ObjectId(task_id)}, {"_id": 0})
 
     # Return no content if the task exists but has no output
     if response is None:
