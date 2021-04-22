@@ -54,7 +54,7 @@ async def request_task(db: AsyncIOMotorDatabase = Depends(get_db_instance)):
     # If no task is currently waiting, just return 404
     if queue_entry is None:
         process_logger.debug("Task requested however no tasks are currently queued.")
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=404, detail="No queued tasks found.")
 
     await update_queue_status(db, queue_entry["_id"], "started")
     task = await db.input.find_one({"_id": queue_entry["_id"]})
@@ -85,7 +85,7 @@ async def submit_task(
             "Output of task %s was submitted however no tasks exist with that ID.",
             task_id,
         )
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=404, detail="Task with this ID was not found.")
 
     process_logger.info(
         "Task %s has been completed. Kernel events received: %d",

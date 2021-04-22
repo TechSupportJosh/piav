@@ -36,7 +36,7 @@ async def get_task_input(
     response = await db.input.find_one({"_id": ObjectId(task_id)})
 
     if response is None:
-        return HTTPException(status_code=404)
+        return HTTPException(status_code=404, detail="Task does not exist.")
 
     return response
 
@@ -45,12 +45,12 @@ async def get_task_input(
     "/task/{task_id}/output",
     responses={
         200: {"description": "Task output is returned.", "model": models.TaskOutput},
-        201: {"description": "Task exists but has not finished.", "model": None},
-        404: {"description": "Task does not exist.", "model": None},
+        204: {"description": "Task exists but has not finished."},
+        404: {"description": "Task does not exist."},
     },
     name="Retrieve task output",
 )
-@router.get("/task/{task_id}/output", response_model=models.TaskOutput)
+@router.get("/task/{task_id}/output")
 async def get_task_output(
     task_id: str, db: AsyncIOMotorDatabase = Depends(get_db_instance)
 ):
@@ -58,13 +58,15 @@ async def get_task_output(
     response = await db.input.find_one({"_id": ObjectId(task_id)})
 
     if response is None:
-        return HTTPException(status_code=404)
+        return HTTPException(status_code=404, detail="Task does not exist.")
 
     response = await db.output.find_one({"_id": ObjectId(task_id)})
 
     # Return no content if the task exists but has no output
     if response is None:
-        return HTTPException(status_code=201)
+        return HTTPException(
+            status_code=204, detail="Task exists but has not finished."
+        )
 
     return response
 
