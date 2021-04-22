@@ -12,7 +12,7 @@
         <tr class="text-center" v-if="queueEntries === undefined">
           <td :colspan="2"><h4>Loading...</h4></td>
         </tr>
-        <tr v-for="entry in queueEntries" :key="entry._id">
+        <tr v-else v-for="entry in queueEntries" :key="entry._id">
           <th scope="row">
             <router-link :to="`/task/${entry._id}`">{{ entry._id }}</router-link>
           </th>
@@ -25,7 +25,7 @@
 
 <script lang="ts">
 import { ref, defineComponent, onMounted, onBeforeUnmount } from "vue";
-import { QueueEntry } from "../typings/Queue";
+import { QueueEntry } from "../models/types/Queue";
 import API from "../utils/api";
 
 export default defineComponent({

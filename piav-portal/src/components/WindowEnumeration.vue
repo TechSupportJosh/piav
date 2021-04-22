@@ -36,7 +36,7 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
-import { WindowEnumeration } from "../typings/TaskOutput";
+import { WindowEnumeration } from "../models/types/TaskOutput";
 
 export default defineComponent({
   props: {
