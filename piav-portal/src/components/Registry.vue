@@ -1,4 +1,6 @@
 <template>
+  <JsonTreeView :data="testObj" :maxDepth="1" />
+  <!--
   <table class="table table-bordered">
     <thead>
       <tr>
@@ -14,14 +16,16 @@
         <td>{{ event.params.status }}</td>
       </tr>
     </tbody>
-  </table>
+  </table>-->
 </template>
 
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
 import { RegistryEvent } from "../models/types/TaskOutput";
+import { JsonTreeView, JsonTreeViewItem } from "json-tree-view-vue3";
 
 export default defineComponent({
+  components: { JsonTreeView },
   props: {
     registryEvents: {
       type: Array as PropType<RegistryEvent[]>,
@@ -29,8 +33,28 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const treeObj: Record<string, any> = {};
+
+    props.registryEvents.forEach((event) => {
+      const split = event.params.key_name.split("\\").filter((i) => i);
+      let parent = treeObj;
+      split.forEach((leaf, index) => {
+        if (!(leaf in parent)) parent[leaf] = {};
+
+        if (split.length - 1 === index) {
+          if (!(event.event_name in parent[leaf])) parent[leaf]["Event: " + event.event_name] = {};
+
+          parent[leaf]["Event: " + event.event_name][event.params.status] =
+            (parent[leaf]["Event: " + event.event_name][event.params.status] ?? 0) + 1;
+        }
+
+        parent = parent[leaf];
+      });
+    });
+
     return {
       registryEvents: props.registryEvents,
+      testObj: JSON.stringify(treeObj, null, 1),
     };
   },
 });
