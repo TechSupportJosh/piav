@@ -318,4 +318,13 @@ response = requests.post(
 )
 
 if response.status_code == 200:
-    logger.info("Successfully posted data, shutting down...")
+    logger.info("Successfully posted data")
+
+if "--restart-at-end" in sys.argv:
+    # https://stackoverflow.com/a/50826520
+    logger.info("Restarting...")
+
+    import ctypes
+
+    user32 = ctypes.WinDLL("user32")
+    user32.ExitWindowsEx(0x00000002, 0x00000000)
