@@ -17,6 +17,32 @@ import logging
 import requests
 from JSONHTTPHandler import JSONHTTPHandler, StyleAdapter
 
+
+def get_screenshot_base64():
+    # Take image of the current top window
+    # https://stackoverflow.com/a/31826470
+    image = application.top_window().capture_as_image()
+    buffered = BytesIO()
+    image.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+
+def start_fibratus():
+    logger.info("Starting fibratus capturing...")
+    return subprocess.Popen(
+        [
+            "fibratus",
+            "run",
+            "ps.name = 'FileZilla.exe' and kevt.category in ('net','file','registry')",
+            "-f",
+            "capture",
+            "--filament.path",
+            os.getcwd(),
+        ],
+        cwd=os.getcwd(),
+    )
+
+
 BASE_API_URL = "http://172.19.112.1:8000"
 API_URL = BASE_API_URL + "/vm"
 failed_requests = 0
@@ -71,18 +97,14 @@ with open(executable_file_path, "wb") as executable_file:
 logger.info("Executable downloaded, starting...")
 
 application = pywinauto.Application(backend="uia")
+
+# If there are no precursors, then we start watching fibratus from the start of the application
+if not len(task_input["precursors"]):
+    fibratus_process = start_fibratus()
+
 application.start(executable_file_path)
 
 base64_images = []
-
-
-def get_screenshot_base64():
-    # Take image of the current top window
-    # https://stackoverflow.com/a/31826470
-    image = application.top_window().capture_as_image()
-    buffered = BytesIO()
-    image.save(buffered, format="JPEG")
-    return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
 try:
@@ -129,19 +151,7 @@ for index, stage in enumerate(task_input["precursors"]):
 
     # If this is the final precursor, then we should start tracking registry changes
     if index + 1 == len(task_input["precursors"]):
-        logger.info("Starting fibratus capturing...")
-        fibratus_process = subprocess.Popen(
-            [
-                "fibratus",
-                "run",
-                "ps.name = 'FileZilla.exe' and kevt.category in ('net','file','registry')",
-                "-f",
-                "capture",
-                "--filament.path",
-                os.getcwd(),
-            ],
-            cwd=os.getcwd(),
-        )
+        fibratus_process = start_fibratus()
 
     # Find the control referenced
     control_reference = application.window(**stage["reference"], top_level_only=False)
