@@ -1,7 +1,7 @@
 import axios from "axios";
-import { QueueEntry } from "../typings/Queue";
-import { TaskInput } from "../typings/TaskInput";
-import { TaskOutput } from "../typings/TaskOutput";
+import { QueueEntry } from "../models/types/Queue";
+import { TaskInput } from "../models/types/TaskInput";
+import { TaskOutput } from "../models/types/TaskOutput";
 
 const client = axios.create({
   baseURL: "http://localhost:8000/portal",

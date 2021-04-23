@@ -27,9 +27,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, onBeforeUnmount, ref, PropType } from "vue";
-import { NetworkEvent } from "../typings/TaskOutput";
-import API from "../utils/api";
+import { defineComponent, PropType } from "vue";
+import { NetworkEvent } from "../models/types/TaskOutput";
 
 export default defineComponent({
   props: {
