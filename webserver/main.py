@@ -1,8 +1,11 @@
+from settings import get_settings
 from bson.objectid import ObjectId
 import pydantic
 import uvicorn
+import os
 from colorama import Fore
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.config import LOGGING_CONFIG
 
@@ -21,6 +24,13 @@ app.add_middleware(
 
 app.include_router(portal.router)
 app.include_router(vm.router)
+
+app.mount(
+    "/executables",
+    StaticFiles(directory=get_settings().upload_directory),
+    name="executable files",
+)
+
 
 # https://github.com/encode/uvicorn/blob/master/uvicorn/config.py#L86
 # https://docs.python.org/3/library/logging.config.html#user-defined-objects

@@ -25,6 +25,8 @@ class Precursor(BaseModel):
 
 class Task(BaseModel):
     id: str = Field(alias="_id")
+    executable_id: str
+
     precursors: List[Precursor]
 
     @validator("id", pre=True, each_item=True)
@@ -78,3 +80,24 @@ class QueueEntry(BaseModel):
 class LogMessage(BaseModel):
     message: str
     levelno: int
+
+
+class SetupExecutable(BaseModel):
+    application_name: str
+    full_installation_name: str
+    installer: str
+    installer_name: str
+
+
+class Executable(BaseModel):
+    id: str = Field(alias="_id")
+    file_name: str
+    file_sha256sum: str
+    application_name: str
+    full_installation_name: str
+
+    @validator("id", pre=True, each_item=True)
+    def convert_id(cls, value):
+        if isinstance(value, ObjectId):
+            return str(value)
+        return value

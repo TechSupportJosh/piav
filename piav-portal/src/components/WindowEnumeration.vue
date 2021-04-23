@@ -18,8 +18,8 @@
     </ul>
     <h3>Screenshot</h3>
     <div class="mb-4">
-      <img :src="`data:image/jpeg;charset=utf-8;base64,${data.base64_images[currentImageIndex]}`" />
-      <nav>
+      <img :src="`data:image/jpeg;charset=utf-8;base64,${data.base64_images[currentImageIndex]}`" class="mb-4" />
+      <nav class="d-flex justify-content-center">
         <ul class="pagination">
           <li class="page-item" :class="{ active: index === currentImageIndex }" v-for="(image, index) in data.base64_images" :key="index">
             <a class="page-link" href="#" @click.prevent="currentImageIndex = index">{{ convertImageIndexToLabel(index) }}</a>
