@@ -17,36 +17,63 @@ import logging
 import requests
 from JSONHTTPHandler import JSONHTTPHandler, StyleAdapter
 
-API_URL = "http://172.19.112.1:8000/vm"
+BASE_API_URL = "http://172.19.112.1:8000"
+API_URL = BASE_API_URL + "/vm"
+failed_requests = 0
 
 # Request task ID
-# TODO: Add error handling
-response = requests.post(API_URL + "/request_task")
+while True:
+    if failed_requests:
+        # Wait a maximum of 256 seconds
+        timeout = min(2 ** failed_requests, 256)
+        print("Waiting {} seconds before trying again...".format(timeout))
+        time.sleep(timeout)
 
-if response.status_code == 404:
-    print("No task to do")
-    sys.exit(-1)
+    try:
+        response = requests.post(API_URL + "/request_task", timeout=10)
+    except requests.exceptions.RequestException as e:  # This is the correct syntax
+        print("Unable to connect to server...")
+        failed_requests += 1
+        continue
+
+    if response.status_code == 404:
+        print("No tasks are current queued...")
+        failed_requests += 1
+        continue
+
+    # Otherwise we have successfully retrieved a task
+    break
 
 task_input = response.json()
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("logger")
 
-http_handler = JSONHTTPHandler(API_URL, f"/log/{task_input['_id']}")
+http_handler = JSONHTTPHandler(API_URL, "/log/" + task_input["_id"])
 http_handler.setLevel(logging.DEBUG)
 
 logger.addHandler(http_handler)
 
 logger = StyleAdapter(logger)
 
-logger.info("Received task, starting application...")
+logger.info("Received task, retrieving application details...")
+
+executable = requests.get(API_URL + "/executable/" + task_input["_id"]).json()
+
+logger.info("Retrieved application, downloading executable...")
+
+executable_file_path = "C:\\Users\\piav\\Documents\\{}".format(executable["file_name"])
+with open(executable_file_path, "wb") as executable_file:
+    executable_file.write(
+        requests.get(BASE_API_URL + "/executables/" + executable["file_name"]).content
+    )
+
+logger.info("Executable downloaded, starting...")
+
+application = pywinauto.Application(backend="uia")
+application.start(executable_file_path)
 
 base64_images = []
-
-application_name = "FileZilla"
-full_install_name = "FileZilla Client 3.52.2"
-application = pywinauto.Application(backend="uia")
-application.start(r"C:\Users\piav\Documents\FileZilla.exe")
 
 
 def get_screenshot_base64():
@@ -63,7 +90,7 @@ try:
 
     # If the application has already exited, they may have spawned another process, therefore we'll try and find the
     # application again before erroring
-    application.connect(best_match=application_name)
+    application.connect(best_match=executable["application_name"])
 
 except pywinauto.timings.TimeoutError:
     logger.debug("Process is still alive.")
@@ -76,7 +103,7 @@ except RuntimeError:
 
     # If the application has already exited, they may have spawned another process, therefore we'll try and find the
     # application again before erroring
-    application.connect(best_match=application_name)
+    application.connect(best_match=executable["application_name"])
 
 fibratus_process = None
 
@@ -230,7 +257,7 @@ if not application.is_process_running():
     }
 
     # Check whether the program has successfully installed, or whether it's just been closed...
-    output["program_installed"] = full_install_name in map(
+    output["program_installed"] = executable["full_installation_name"] in map(
         lambda software: software["name"], get_installed_software()
     )
 else:

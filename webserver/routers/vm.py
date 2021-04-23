@@ -1,14 +1,15 @@
 import logging
-from logs import ClientFormatter, CustomFormatter
 from typing import List
 
 import models
 from bson.objectid import ObjectId
 from database import get_db_instance
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
+from logs import ClientFormatter, CustomFormatter
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from output_handler import get_branches
+from starlette.responses import RedirectResponse
 
 router = APIRouter(
     prefix="/vm",
@@ -61,6 +62,26 @@ async def request_task(db: AsyncIOMotorDatabase = Depends(get_db_instance)):
 
     process_logger.info("Allocated task %s to machine", task["_id"])
     return task
+
+
+@router.get("/executable/{task_id}", name="Retrieve executable for task")
+async def get_task_executable(
+    task_id: str, db: AsyncIOMotorDatabase = Depends(get_db_instance)
+):
+    """Gets the executable for a task."""
+    task = await db.input.find_one({"_id": ObjectId(task_id)})
+
+    # If no task is currently waiting, just return 404
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task with this ID was not found.")
+
+    executable = await db.executable.find_one({"_id": ObjectId(task["executable_id"])})
+
+    # If no task is currently waiting, just return 404
+    if executable is None:
+        raise HTTPException(status_code=404, detail="Task has no executable assigned.")
+
+    return executable
 
 
 @router.post(
