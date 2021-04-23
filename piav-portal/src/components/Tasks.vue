@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <h1 class="mb-4">Queued Machines</h1>
+    <h1 class="mb-4">Task Queue</h1>
     <table class="table">
       <thead>
         <tr>

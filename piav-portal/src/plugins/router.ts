@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 
 import Task from "../components/Task.vue";
-import TaskQueue from "../components/TaskQueue.vue";
+import Tasks from "../components/Tasks.vue";
 import Executable from "../components/Executable.vue";
 import SetupExecutable from "../components/SetupExecutable.vue";
 
@@ -19,9 +19,9 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/",
-    component: TaskQueue,
+    component: Tasks,
     meta: {
-      navigationLabel: "Queued Tasks",
+      navigationLabel: "Tasks",
     },
   },
   {
