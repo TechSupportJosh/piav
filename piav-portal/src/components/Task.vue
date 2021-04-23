@@ -2,6 +2,8 @@
   <div class="container">
     <h1 class="mb-4">Task {{ taskId }}</h1>
     <h2>Input</h2>
+    <hr />
+    <h3>Precursors</h3>
     <div v-if="taskInput">
       <precursors :precursors="taskInput.precursors"></precursors>
     </div>
@@ -9,13 +11,17 @@
       <h4>Loading...</h4>
     </div>
     <h2>Output</h2>
+    <hr />
     <div v-if="taskOutput">
       <h3>Window Enumeration</h3>
       <window-enumeration :data="taskOutput.window_enumeration"></window-enumeration>
+      <hr />
       <h3>Network Traffic</h3>
       <network :network-events="taskOutput.kernel_events.net"></network>
+      <hr />
       <h3>Registry Events</h3>
       <registry :registry-events="taskOutput.kernel_events.registry"></registry>
+      <hr />
     </div>
     <div v-else>
       <h4>No task output. This page will update when the task finishes.</h4>
