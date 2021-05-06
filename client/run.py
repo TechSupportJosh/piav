@@ -52,8 +52,8 @@ failed_requests = 0
 # Request task ID
 while True:
     if failed_requests:
-        # Wait a maximum of 256 seconds
-        timeout = min(2 ** failed_requests, 256)
+        # Cap failed requests at 8
+        timeout = 2 ** min(8, failed_requests)
         print("Waiting {} seconds before trying again...".format(timeout))
         time.sleep(timeout)
 
