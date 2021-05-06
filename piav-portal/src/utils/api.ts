@@ -7,12 +7,12 @@ import { TaskOutput } from "../models/types/TaskOutput";
 export const API_BASE = "http://localhost:8000";
 
 const client = axios.create({
-  baseURL: API_BASE + "/portal",
+  baseURL: API_BASE + "/",
   validateStatus: undefined,
 });
 
 const getQueuedMachines = async () => {
-  const response = await client.get<QueueEntry[]>("/queue");
+  const response = await client.get<QueueEntry[]>("/queue/");
 
   if (response.status === 200) return response.data;
 };
@@ -30,13 +30,13 @@ const getTaskOutput = async (taskId: string) => {
 };
 
 const getExecutables = async () => {
-  const response = await client.get<Executable[]>("/executable");
+  const response = await client.get<Executable[]>("/executable/");
 
   if (response.status === 200) return response.data;
 };
 
 const setupExecutable = async (applicationName: string, fullInstallationName: string, installer: string, installerName: string) => {
-  const response = await client.post(`/executable`, {
+  const response = await client.post(`/executable/`, {
     application_name: applicationName,
     full_installation_name: fullInstallationName,
     installer: installer,
