@@ -27,13 +27,15 @@ def get_screenshot_base64():
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
-def start_fibratus():
+def start_fibratus(executable_name):
     logger.info("Starting fibratus capturing...")
     return subprocess.Popen(
         [
             "fibratus",
             "run",
-            "ps.name = 'FileZilla.exe' and kevt.category in ('net','file','registry')",
+            "ps.name = '{}' and kevt.category in ('net','file','registry')".format(
+                executable_name
+            ),
             "-f",
             "capture",
             "--filament.path",
@@ -43,7 +45,7 @@ def start_fibratus():
     )
 
 
-BASE_API_URL = "http://172.19.112.1:8000"
+BASE_API_URL = "http://172.28.48.1:8000"
 API_URL = BASE_API_URL + "/vm"
 failed_requests = 0
 
@@ -72,6 +74,8 @@ while True:
 
 task_input = response.json()
 
+print(task_input)
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("logger")
 
@@ -84,7 +88,9 @@ logger = StyleAdapter(logger)
 
 logger.info("Received task, retrieving application details...")
 
-executable = requests.get(API_URL + "/executable/" + task_input["_id"]).json()
+executable = requests.get(
+    BASE_API_URL + "/portal/executable/" + task_input["executable_id"]
+).json()
 
 logger.info("Retrieved application, downloading executable...")
 
@@ -96,11 +102,25 @@ with open(executable_file_path, "wb") as executable_file:
 
 logger.info("Executable downloaded, starting...")
 
+fibratus_process = None
+
+# Delete old fibratus output if it exists
+try:
+    os.remove("fibratus_capture.json")
+except FileNotFoundError:
+    pass
+
+# Kill old fibratus process
+for proc in psutil.process_iter():
+    if proc.name() == "fibratus.exe":
+        logger.info("Found old fibratus.exe, killing...")
+        proc.kill()
+
 application = pywinauto.Application(backend="uia")
 
-# If there are no precursors, then we start watching fibratus from the start of the application
-if not len(task_input["precursors"]):
-    fibratus_process = start_fibratus()
+# If there are no setup actions, then we start watching fibratus from the start of the application
+if not len(task_input["setup_actions"]):
+    fibratus_process = start_fibratus(executable["file_name"])
 
 application.start(executable_file_path)
 
@@ -127,62 +147,66 @@ except RuntimeError:
     # application again before erroring
     application.connect(best_match=executable["application_name"])
 
-fibratus_process = None
-
-# Delete old fibratus output if it exists
-try:
-    os.remove("fibratus_capture.json")
-except FileNotFoundError:
-    pass
-
-# Kill old fibratus process
-for proc in psutil.process_iter():
-    if proc.name() == "fibratus.exe":
-        proc.kill()
-
 # Take a picture of the application as it's started
 base64_images.append(get_screenshot_base64())
 
-# Now execute task_input
-for index, stage in enumerate(task_input["precursors"]):
-    logger.info(
-        "Now executing precursor {} of {}.", index + 1, len(task_input["precursors"])
-    )
 
-    # If this is the final precursor, then we should start tracking registry changes
-    if index + 1 == len(task_input["precursors"]):
-        fibratus_process = start_fibratus()
-
+def execute_action(application, base64_images, logger, action):
     # Find the control referenced
-    control_reference = application.window(**stage["reference"], top_level_only=False)
+    control_reference = application.window(**action["reference"], top_level_only=False)
 
-    timeout = stage.get("wait_for_element_timeout", 0)
+    timeout = action.get("wait_for_element_timeout", 0)
     try:
         control = control_reference.wait("visible", timeout=timeout)
     except pywinauto.timings.TimeoutError:
-        logger.warn(
-            "Control {} was not available after {} seconds.".format(
-                stage["reference"], timeout
-            )
+        logger.warning(
+            "Control {} was not available after {} seconds.",
+            action["reference"],
+            timeout,
         )
         # TODO: Error handling for when it doesn't go as expected...
 
     # Now run the action defined on the control (executes control.method(parameters))
-    if stage["action"]["method"] == "set_toggle_state":
+    if action["method"] == "set_toggle_state":
         current_state = bool(control.get_toggle_state())
-        desired_state = stage["action"]["parameters"]["state"]
+        desired_state = action["method_params"]["state"]
 
         if current_state != desired_state:
             control.click()
     else:
-        getattr(control, stage["action"]["method"])(**stage["action"]["parameters"])
+        getattr(control, action["method"])(**action["method_params"])
 
-    delay = stage.get("delay_after_action", 0)
+    delay = action.get("delay_after_action", 0)
     logger.debug("Waiting for {} seconds.", delay)
     time.sleep(delay)
 
     # After running this precursor, take a screenshot
     base64_images.append(get_screenshot_base64())
+
+
+# Execute the setup actions
+for index, action in enumerate(task_input["setup_actions"]):
+    logger.info(
+        "Now executing setup action {} of {}.",
+        index + 1,
+        len(task_input["setup_actions"]),
+    )
+
+    execute_action(application, base64_images, logger, action)
+
+# If there was setup_actions, we can now run fibratus
+if len(task_input["setup_actions"]):
+    fibratus_process = start_fibratus(executable["file_name"])
+
+# Execute the actions
+for index, action in enumerate(task_input["actions"]):
+    logger.info(
+        "Now executing action {} of {}.",
+        index + 1,
+        len(task_input["actions"]),
+    )
+
+    execute_action(application, base64_images, logger, action)
 
 # Now check whether there's a progress bar on the screen (for example, extracting resources)
 # before enumerating options
@@ -304,12 +328,12 @@ else:
 
 fibratus_output = {"registry": [], "file": [], "net": []}
 
-try:
+if os.path.exists("fibratus_capture.json"):
     with open("fibratus_capture.json", "r") as fibratus_output_file:
         fibratus_output = json.load(fibratus_output_file)
     os.remove("fibratus_output.json")
-except FileNotFoundError:
-    logger.warn("No Fiberatus output found")
+else:
+    logger.warning("No Fiberatus output found")
 
 logger.info("Uploading data to server...")
 response = requests.post(

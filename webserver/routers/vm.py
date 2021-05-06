@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
 from logs import ClientFormatter, CustomFormatter
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from output_handler import get_branches
+from output_handler import enumerate_output_and_generate_actions
 from starlette.responses import RedirectResponse
 
 router = APIRouter(
@@ -60,6 +60,25 @@ async def request_task(db: AsyncIOMotorDatabase = Depends(get_db_instance)):
     await update_queue_status(db, queue_entry["_id"], "started")
     task = await db.input.find_one({"_id": queue_entry["_id"]})
 
+    # We need to retrieve the setup_actions by continously retrieving the previous task id
+    setup_actions = []
+
+    resolve_task = task
+    while True:
+        if resolve_task["parent_task"] is None:
+            task["executable_id"] = resolve_task["executable_id"]
+            break
+
+        resolve_task = await db.input.find_one(
+            {"_id": ObjectId(resolve_task["parent_task"])}
+        )
+
+        # Prepend the parent_task's actions
+        if resolve_task["actions"] is not None:
+            setup_actions = resolve_task["actions"] + setup_actions
+
+    task["setup_actions"] = setup_actions
+
     process_logger.info("Allocated task %s to machine", task["_id"])
     return task
 
@@ -71,7 +90,7 @@ async def get_task_executable(
     """Gets the executable for a task."""
     task = await db.input.find_one({"_id": ObjectId(task_id)})
 
-    # If no task is currently waiting, just return 404
+    # If this task doesn't exist, just return 404
     if task is None:
         raise HTTPException(status_code=404, detail="Task with this ID was not found.")
 
@@ -168,8 +187,10 @@ async def submit_task(
 
     process_logger.info("Calculating branches for %s", task_id)
 
-    for branch in get_branches(task_input, task_output.dict()["window_enumeration"]):
-        result = await db.input.insert_one(branch)
+    for actions in enumerate_output_and_generate_actions(
+        task_output.dict()["window_enumeration"]
+    ):
+        result = await db.input.insert_one({"parent_task": task_id, "actions": actions})
         task_ids.append(result.inserted_id)
         process_logger.info(
             "Queuing task %s, branched from %s", result.inserted_id, task_id

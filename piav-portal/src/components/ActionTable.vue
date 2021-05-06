@@ -9,11 +9,11 @@
       </tr>
     </thead>
     <tbody>
-      <tr v-for="(precursor, index) in precursors" :key="index">
+      <tr v-for="(precursor, index) in actions" :key="index">
         <td>{{ precursor.reference }}</td>
         <td>{{ precursor.wait_for_element_timeout }}</td>
         <td>{{ precursor.delay_after_action }}</td>
-        <td>Method: {{ precursor.action.method }}<br />Parameters: {{ precursor.action.parameters }}</td>
+        <td>Method: {{ precursor.method }}<br />Parameters: {{ precursor.method_params }}</td>
       </tr>
     </tbody>
   </table>
@@ -21,18 +21,18 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
-import { Precursor } from "../models/types/TaskInput";
+import { Action } from "../models/types/TaskInput";
 
 export default defineComponent({
   props: {
-    precursors: {
-      type: Array as PropType<Precursor[]>,
+    actions: {
+      type: Array as PropType<Action[]>,
       required: true,
     },
   },
   setup(props) {
     return {
-      precursors: props.precursors,
+      actions: props.actions,
     };
   },
 });

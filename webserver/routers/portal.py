@@ -57,6 +57,25 @@ async def get_task_input(
     if response is None:
         raise HTTPException(status_code=404, detail="Task does not exist.")
 
+    # We need to retrieve the setup_actions by continously retrieving the previous task id
+    setup_actions = []
+
+    resolve_task = response
+    while True:
+        if resolve_task["parent_task"] is None:
+            response["executable_id"] = resolve_task["executable_id"]
+            break
+
+        resolve_task = await db.input.find_one(
+            {"_id": ObjectId(resolve_task["parent_task"])}
+        )
+
+        # Prepend the parent_task's actions
+        if resolve_task["actions"] is not None:
+            setup_actions = resolve_task["actions"] + setup_actions
+
+    response["setup_actions"] = setup_actions
+
     return response
 
 
@@ -159,7 +178,12 @@ async def setup_executable(
 
     # Create the base task
     task_result = await db.input.insert_one(
-        {"executable_id": str(executable_result.inserted_id), "precursors": []}
+        {
+            "executable_id": str(executable_result.inserted_id),
+            "parent_task": None,
+            "setup_actions": [],
+            "actions": [],
+        }
     )
 
     # Create queue entry

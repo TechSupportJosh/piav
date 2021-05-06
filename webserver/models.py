@@ -11,23 +11,21 @@ class Reference(BaseModel):
 
 
 class Action(BaseModel):
-    method: str
-    parameters: Dict[str, Any]
-
-
-class Precursor(BaseModel):
     reference: Reference
     wait_for_element_timeout: int = 15
     delay_after_action: int = 10
 
-    action: Action
+    method: str
+    method_params: Dict[str, Any]
 
 
 class Task(BaseModel):
     id: str = Field(alias="_id")
+    parent_task: Optional[str]
     executable_id: str
 
-    precursors: List[Precursor]
+    setup_actions: List[Action]
+    actions: List[Action]
 
     @validator("id", pre=True, each_item=True)
     def convert_id(cls, value):

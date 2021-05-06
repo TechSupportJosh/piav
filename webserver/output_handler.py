@@ -1,7 +1,3 @@
-import json
-import copy
-import os
-import sys
 import itertools
 import logging
 from logs import CustomFormatter
@@ -15,27 +11,22 @@ ch.setFormatter(CustomFormatter())
 output_logger.addHandler(ch)
 
 
-def add_button_press_to_precusor_list(branches, precursor_list, button_control):
+def get_action_for_button(button_control):
     # Add new precursor, click on this button
-    precursor_list.append(
-        {
-            "reference": button_control["reference"],
-            "wait_for_element_timeout": 15,  # TODO: dynamic delays
-            "delay_after_action": 10,
-            "action": {"method": "click", "parameters": {}},
-        }
-    )
-
-    branches.append({"precursors": precursor_list})
+    return {
+        "reference": button_control["reference"],
+        "wait_for_element_timeout": 15,  # TODO: dynamic delays
+        "delay_after_action": 10,
+        "method": "click",
+        "method_params": {},
+    }
 
 
-def get_branches(input_task, output_task):
-    output_logger.info("Processing output of task %s", input_task["_id"])
+def enumerate_output_and_generate_actions(task_output):
+    output_controls = task_output["found_controls"]
 
-    output_controls = output_task["found_controls"]
-    prepend_precursor = input_task["precursors"]
-
-    branches = []
+    # Actions is a list of lists of actions
+    actions = []
 
     output_logger.debug("Input elements: %s", str(output_controls))
 
@@ -61,20 +52,24 @@ def get_branches(input_task, output_task):
     if radio_buttons:
         # Generate the cartesian product of radio buttons and regular buttons
         for radio_button, button_control in itertools.product(radio_buttons, buttons):
-            new_precursors = copy.deepcopy(prepend_precursor)
+            output = []
 
             # Click on this radio button
-            new_precursors.append(
+            output.append(
                 {
                     "reference": radio_button["reference"],
                     "wait_for_element_timeout": 15,  # TODO: dynamic delays
                     "delay_after_action": 10,
-                    "action": {"method": "click", "parameters": {}},
+                    "method": "click",
+                    "method_params": {},
                 }
             )
 
             # Then click on the button
-            add_button_press_to_precusor_list(branches, new_precursors, button_control)
+            output.append(get_action_for_button(button_control))
+
+            # Add to actions list
+            actions.append(output)
     elif checkboxes:
         # If we have checkboxes
         # Generate all possible combinations of the checkboxes and their states (TT, TF, FT, FF)
@@ -82,31 +77,34 @@ def get_branches(input_task, output_task):
         # Then generate cartesian product of all of those states and buttons
         product_list = itertools.product(nest_me, buttons)
         for checkboxes_state, button_control in product_list:
-            new_precursors = copy.deepcopy(prepend_precursor)
-
             # Loop through checkboxes state and set each of them to the state
             # checkboxes_state = (1, 0, 0) if there's 3 checkboxes
+            output = []
+
             for box_index, value in enumerate(checkboxes_state):
-                new_precursors.append(
+                output.append(
                     {
                         "reference": checkboxes[box_index]["reference"],
                         "wait_for_element_timeout": 15,  # TODO: dynamic delays
                         "delay_after_action": 2,
-                        "action": {
+                        "method": "click",
+                        "method_params": {
                             "method": "set_toggle_state",
                             "parameters": {"state": value},
                         },
                     }
                 )
 
-            add_button_press_to_precusor_list(branches, new_precursors, button_control)
+            # Then click on the button
+            output.append(get_action_for_button(button_control))
+
+            # Add to actions list
+            actions.append(output)
     else:
         # If we just have buttons, click on them
         for button_control in buttons:
-            new_precursors = copy.deepcopy(prepend_precursor)
+            actions.append([get_action_for_button(button_control)])
 
-            add_button_press_to_precusor_list(branches, new_precursors, button_control)
+    output_logger.debug("Branches: %s", str(actions))
 
-    output_logger.debug("Branches: %s", str(branches))
-
-    return branches
+    return actions

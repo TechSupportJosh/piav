@@ -3,9 +3,13 @@
     <h1 class="mb-4">Task {{ taskId }}</h1>
     <h2>Input</h2>
     <hr />
-    <h3>Precursors</h3>
+    <h3>Setup Actions</h3>
     <div v-if="taskInput">
-      <precursors :precursors="taskInput.precursors"></precursors>
+      <action-table :actions="taskInput.setup_actions"></action-table>
+    </div>
+    <h3>Main Actions</h3>
+    <div v-if="taskInput">
+      <action-table :actions="taskInput.actions"></action-table>
     </div>
     <div v-else>
       <h4>Loading...</h4>
@@ -36,7 +40,7 @@ import { TaskOutput } from "../models/types/TaskOutput";
 import Network from "./Network.vue";
 import Registry from "./Registry.vue";
 import WindowEnumeration from "./WindowEnumeration.vue";
-import Precursors from "./Precursors.vue";
+import ActionTable from "./ActionTable.vue";
 import API from "../utils/api";
 import { TaskInput } from "../models/types/TaskInput";
 
@@ -45,7 +49,7 @@ export default defineComponent({
     Network,
     WindowEnumeration,
     Registry,
-    Precursors,
+    ActionTable,
   },
   setup: () => {
     const router = useRouter();
