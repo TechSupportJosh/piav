@@ -2,8 +2,14 @@ export interface Reference {
   auto_id: string;
 }
 
-export interface Action {
+export interface UIControl {
   reference: Reference;
+  meta: Record<string, any>;
+  type: string;
+}
+
+export interface Action {
+  control: UIControl;
   wait_for_element_timeout: number;
   delay_after_action: number;
   method: string;

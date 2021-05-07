@@ -7,19 +7,20 @@ import { defineComponent, onMounted } from "vue";
 import cytoscape from "cytoscape";
 import api from "../utils/api";
 import dagre from "cytoscape-dagre";
-import { Action } from "../models/types/TaskInput";
+import { Action, TaskInput } from "../models/types/TaskInput";
 
 export default defineComponent({
   setup() {
-    const actionsToString = (actions: Action[]) => {
-      return actions.map((action) => `${action.method} UI item ${action.reference.auto_id}`).join("\n");
+    const taskActionsToString = (taskInput: TaskInput) => {
+      const actions = taskInput.actions;
+      return actions.map((action) => `${action.method} "${action.control.meta.text}"`).join("\n");
     };
 
     onMounted(async () => {
       const taskInputs = await api.getTaskInputs();
-      const sameAsOutputs = await api.getSameAsOutputs();
+      const taskOutputs = await api.getTaskOutputs(false, false);
 
-      if (!taskInputs || !sameAsOutputs) return;
+      if (!taskInputs || !taskOutputs) return;
 
       let rootId = "";
       const parents: Record<string, string> = {};
@@ -27,7 +28,7 @@ export default defineComponent({
       const elements: cytoscape.ElementDefinition[] = [];
       taskInputs.forEach((taskInput) => {
         // We don't draw same_as outputs as a new node
-        if (sameAsOutputs.find((output) => output._id === taskInput._id)) return;
+        if (taskOutputs.find((output) => output._id === taskInput._id && output.same_as)) return;
 
         elements.push({
           data: {
@@ -43,7 +44,8 @@ export default defineComponent({
               id: taskInput._id + taskInput.parent_task,
               source: taskInput.parent_task,
               target: taskInput._id,
-              label: actionsToString(taskInput.actions),
+              label: taskActionsToString(taskInput),
+              color: "blue",
             },
           });
         } else {
@@ -51,7 +53,7 @@ export default defineComponent({
         }
       });
 
-      sameAsOutputs.forEach((taskOutput) => {
+      taskOutputs.forEach((taskOutput) => {
         if (!taskOutput.same_as) return;
         const taskInput = taskInputs.find((input) => input._id === taskOutput._id);
         console.log(taskInput);
@@ -61,19 +63,11 @@ export default defineComponent({
             data: {
               source: taskInput.parent_task,
               target: taskOutput.same_as,
-              label: actionsToString(taskInput.actions),
+              label: taskActionsToString(taskInput),
+              color: "red",
             },
           });
       });
-
-      //   elements.push({
-      //     data: {
-      //       id: "6095295eda4ad855bf963987aa6094570d26aa073b2810cb67",
-      //       source: "609528deda4ad855bf963987",
-      //       target: "6094570d26aa073b2810cb67",
-      //       label: "click UI item 1201\nclick UI item 3",
-      //     },
-      //   });
 
       let options: cytoscape.LayoutOptions = {
         name: "dagre",
@@ -95,6 +89,7 @@ export default defineComponent({
         ready: undefined, // callback on layoutready
         stop: undefined, // callback on layoutstop
       };
+
       cytoscape.use(dagre);
       const cy = cytoscape({
         container: document.getElementById("cy"), // container to render in
@@ -112,8 +107,11 @@ export default defineComponent({
             style: {
               "curve-style": "bezier",
               "target-arrow-shape": "triangle",
+              "target-arrow-color": "data(color)",
+              "arrow-scale": 1.5,
               "text-wrap": "wrap",
               "control-point-step-size": 120,
+              "line-color": "data(color)",
               width: 5,
               label: "data(label)",
             },

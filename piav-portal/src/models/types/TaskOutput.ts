@@ -1,3 +1,5 @@
+import { UIControl } from "./TaskInput";
+
 export interface KernelEvent {
   event_name: string;
   params: Record<string, any>;
@@ -60,14 +62,9 @@ export interface WindowEnumeration {
   program_installed: boolean;
   top_window_texts?: string[];
   base64_images?: string[];
-  found_controls?: {
-    control_type: string;
-    reference: {
-      auto_id: string;
-    };
-    _debug: Record<string, any>;
-  }[];
+  found_controls?: UIControl[];
 }
+
 export interface TaskOutput {
   _id: string;
   window_enumeration: WindowEnumeration;

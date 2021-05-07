@@ -35,8 +35,10 @@ const getTaskOutput = async (taskId: string) => {
   if (response.status === 200) return response.data;
 };
 
-const getSameAsOutputs = async () => {
-  const response = await client.get<TaskOutput[]>(`/task/same_as_outputs`);
+const getTaskOutputs = async (windowEnumeration = true, kernelEvents = true) => {
+  const response = await client.get<TaskOutput[]>(`/task/output`, {
+    params: { window_enumeration: windowEnumeration, kernel_events: kernelEvents },
+  });
 
   if (response.status === 200) return response.data;
 };
@@ -63,7 +65,7 @@ export default {
   getTaskInput,
   getTaskInputs,
   getTaskOutput,
-  getSameAsOutputs,
+  getTaskOutputs,
   getExecutables,
   setupExecutable,
 };
