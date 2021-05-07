@@ -3,10 +3,45 @@
 Program Installation Analysis using Virtualisation
 
 ## Client Setup
+### Initialising the VM
+By utilising disk modes within VMware/VirtualBox, we can create a VM which discards it's changes after being restarted. Therefore, the steps below are required to create a "base image". 
 
-1. Install Python 3
-2. pip install -r requirements.txt
-3. Install Fibratus (https://github.com/rabbitstack/fibratus/releases)
+1. Create a new VM inside VMware:
+
+    Use these settings (initially, use as much RAM / CPU as possible to accelerate Windows installation):
+    - Name: PIAV1
+    - Type: Microsoft Windows
+    - Version: Windows 10 (64 bit)
+    - Memory: 4096MB
+    - Disk space: 45GB
+  
+2. Once it has booted, go through the Windows installer
+   - Select I don't have a product key
+   - Select Windows 10 Pro
+   - Select Install Windows Only
+   - Select the 45GB drive
+   - Wait for it to install
+   - Select Setup for personal use
+   - Select Offline account
+   - Select Limited experience
+   - Enter piav for all username/passwords/security questions
+
+3. Disable UAC
+    - Type uac into the taskbar
+    - Select never notify
+4. Install Python 3.9.4 with the 64-bit Windows installer (https://www.python.org/ftp/python/3.9.4/python-3.9.4-amd64.exe)
+    - Ensure "Install launcher for all users" and "Add Python 3.9 to PATH" is checked
+    - Disable the PATH limit length
+5. Install Fibratus (https://github.com/rabbitstack/fibratus/releases)
+6. Enable automatic login by following this guide https://docs.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon
+    - Run regedit 
+    - Go to `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon`
+    - Set AutoAdminLogin to `1`
+    - Set DefaultUserName to `piav`
+    - Create key `DefaultPassword` by doing Edit > New > String Value
+    - Enter `piav` as the value
+
+7. pip install -r requirements.txt
 
 ## Virtualisation Notes
 
