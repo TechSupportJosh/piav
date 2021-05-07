@@ -230,7 +230,7 @@ if fibratus_process is not None:
     # will be killed however we will continue to exist
     try:
         fibratus_process.send_signal(signal.CTRL_C_EVENT)
-        time.sleep(60)
+        time.sleep(300)
     except KeyboardInterrupt:
         logger.debug("Captured KeyboardInterrupt (SIGINT)")
 
