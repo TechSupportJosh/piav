@@ -11,8 +11,9 @@ export interface Action {
 }
 
 export interface TaskInput {
+  _id: string;
   executable_id: string;
-  source_task: string;
+  parent_task: string;
   setup_actions: Action[];
   actions: Action[];
 }

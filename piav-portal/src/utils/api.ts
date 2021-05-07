@@ -17,14 +17,20 @@ const getQueuedMachines = async () => {
   if (response.status === 200) return response.data;
 };
 
+const getTaskInputs = async () => {
+  const response = await client.get<TaskInput[]>(`/task/input`);
+
+  if (response.status === 200) return response.data;
+};
+
 const getTaskInput = async (taskId: string) => {
-  const response = await client.get<TaskInput>(`/task/${taskId}/input`);
+  const response = await client.get<TaskInput>(`/task/input/${taskId}`);
 
   if (response.status === 200) return response.data;
 };
 
 const getTaskOutput = async (taskId: string) => {
-  const response = await client.get<TaskOutput>(`/task/${taskId}/output`);
+  const response = await client.get<TaskOutput>(`/task/output/${taskId}`);
 
   if (response.status === 200) return response.data;
 };
@@ -49,6 +55,7 @@ const setupExecutable = async (applicationName: string, fullInstallationName: st
 export default {
   getQueuedMachines,
   getTaskInput,
+  getTaskInputs,
   getTaskOutput,
   getExecutables,
   setupExecutable,

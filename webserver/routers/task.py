@@ -1,3 +1,4 @@
+from typing import List
 import models
 from bson.objectid import ObjectId
 from database import get_db_instance
@@ -12,7 +13,22 @@ router = APIRouter(
 
 
 @router.get(
-    "/{task_id}/input",
+    "/input",
+    responses={
+        200: {
+            "description": "Task inputs are returned, however their actions are not resolved.",
+            "model": List[models.Task],
+        },
+    },
+    name="Retrieve all task inputs",
+)
+async def get_task_inputs(db: AsyncIOMotorDatabase = Depends(get_db_instance)):
+    tasks = await db.input.find().to_list(length=None)
+    return tasks
+
+
+@router.get(
+    "/input/{task_id}",
     responses={
         200: {"description": "Task input is returned.", "model": models.Task},
         404: {"description": "Task does not exist.", "model": None},
@@ -50,7 +66,7 @@ async def get_task_input(
 
 
 @router.get(
-    "/task/{task_id}/output",
+    "/output/{task_id}",
     responses={
         200: {"description": "Task output is returned.", "model": models.TaskOutput},
         202: {"description": "Task exists but has not finished."},
@@ -58,7 +74,6 @@ async def get_task_input(
     },
     name="Retrieve task output",
 )
-@router.get("/{task_id}/output")
 async def get_task_output(
     task_id: str, db: AsyncIOMotorDatabase = Depends(get_db_instance)
 ):
