@@ -1,49 +1,18 @@
-from io import BytesIO
 import json
-import sys
-import time
-import subprocess
 import os
 import signal
-import psutil
-import base64
-from enum import IntEnum
+import sys
+import time
+
 import pywinauto
-import pywinauto.controls.uia_controls as uia_controls
-from windows_tools.installed_software import get_installed_software
-from WindowInteractionState import WindowInteractionState, get_window_interaction_state
-
-import logging
 import requests
-from JSONHTTPHandler import JSONHTTPHandler, StyleAdapter
+from windows_tools.installed_software import get_installed_software
 
-
-def get_screenshot_base64():
-    # Take image of the current top window
-    # https://stackoverflow.com/a/31826470
-    image = application.top_window().capture_as_image()
-    buffered = BytesIO()
-    image.save(buffered, format="JPEG")
-    return base64.b64encode(buffered.getvalue()).decode("utf-8")
-
-
-def start_fibratus(executable_name):
-    logger.info("Starting fibratus capturing...")
-    return subprocess.Popen(
-        [
-            "fibratus",
-            "run",
-            "ps.name = '{}' and kevt.category in ('net','file','registry')".format(
-                executable_name
-            ),
-            "-f",
-            "piav_kernel_capture",
-            "--filament.path",
-            os.getcwd(),
-        ],
-        cwd=os.getcwd(),
-    )
-
+from fibratus.helper import kill_fibratus, start_fibratus
+from utils.logger import get_logger
+from utils.screenshot import get_screenshot_base64
+from utils.action import execute_action
+from utils.control import enumerate_controls
 
 API_URL = "http://172.28.48.1:8000"
 failed_requests = 0
@@ -73,22 +42,10 @@ while True:
 
 task_input = response.json()
 
-print(task_input)
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("logger")
-
-http_handler = JSONHTTPHandler(API_URL, "/vm/log/" + task_input["_id"])
-http_handler.setLevel(logging.DEBUG)
-
-logger.addHandler(http_handler)
-
-logger = StyleAdapter(logger)
-
+logger = get_logger(API_URL, task_input["_id"])
 logger.info("Received task, retrieving application details...")
 
 executable = requests.get(API_URL + "/executable/" + task_input["executable_id"]).json()
-
 logger.info("Retrieved application, downloading executable...")
 
 executable_file_path = "C:\\Users\\piav\\Documents\\{}".format(executable["file_name"])
@@ -99,7 +56,6 @@ with open(executable_file_path, "wb") as executable_file:
 
 logger.info("Executable downloaded, starting...")
 
-fibratus_process = None
 
 # Delete old fibratus output if it exists
 try:
@@ -107,22 +63,20 @@ try:
 except FileNotFoundError:
     pass
 
-# Kill old fibratus process
-for proc in psutil.process_iter():
-    if proc.name() == "fibratus.exe":
-        logger.info("Found old fibratus.exe, killing...")
-        proc.kill()
+if kill_fibratus():
+    logger.info("Killed lingering fibratus.exe")
+
 
 application = pywinauto.Application(backend="uia")
+base64_images = []
+fibratus_process = None
 
 # If there are no setup actions, then we start watching fibratus from the start of the application
 if not len(task_input["setup_actions"]):
+    logger.info("Starting fibratus capture before starting application...")
     fibratus_process = start_fibratus(executable["file_name"])
 
 application.start(executable_file_path)
-
-base64_images = []
-
 
 try:
     application.wait_for_process_exit(timeout=3)
@@ -145,42 +99,7 @@ except RuntimeError:
     application.connect(best_match=executable["application_name"])
 
 # Take a picture of the application as it's started
-base64_images.append(get_screenshot_base64())
-
-
-def execute_action(application, base64_images, logger, action):
-    # Find the control referenced
-    control_reference = application.window(
-        **action["control"]["reference"], top_level_only=False
-    )
-
-    timeout = action.get("wait_for_element_timeout", 0)
-    try:
-        control = control_reference.wait("visible", timeout=timeout)
-    except pywinauto.timings.TimeoutError:
-        logger.warning(
-            "Control {} was not available after {} seconds.",
-            action["control"],
-            timeout,
-        )
-        # TODO: Error handling for when it doesn't go as expected...
-
-    # Now run the action defined on the control (executes control.method(parameters))
-    if action["method"] == "set_toggle_state":
-        current_state = bool(control.get_toggle_state())
-        desired_state = action["method_params"]["state"]
-
-        if current_state != desired_state:
-            control.click()
-    else:
-        getattr(control, action["method"])(**action["method_params"])
-
-    delay = action.get("delay_after_action", 0)
-    logger.debug("Waiting for {} seconds.", delay)
-    time.sleep(delay)
-
-    # After running this precursor, take a screenshot
-    base64_images.append(get_screenshot_base64())
+base64_images.append(get_screenshot_base64(application))
 
 
 # Execute the setup actions
@@ -195,6 +114,7 @@ for index, action in enumerate(task_input["setup_actions"]):
 
 # If there was setup_actions, we can now run fibratus
 if len(task_input["setup_actions"]):
+    logger.info("Starting fibratus capture before executing actions...")
     fibratus_process = start_fibratus(executable["file_name"])
 
 # Execute the actions
@@ -239,49 +159,11 @@ if fibratus_process is not None:
     time.sleep(15)
     logger.debug("Fibratus stopped")
 
-interactive_control_types = [uia_controls.ButtonWrapper]
-
-
-def is_interactive_control(control):
-    print(control)
-    print(repr(control))
-
-    # Check whether it's not inaccessible due to it's parent being blocked by modal dialog
-    window_state = get_window_interaction_state(control.parent())
-    if (
-        window_state is not None
-        and window_state == WindowInteractionState.BlockedByModalWindow
-    ):
-        return False
-
-    # Check whether it's listed as  a interactive_control_type
-    if type(control) not in interactive_control_types:
-        return False
-
-    # Check it's parent is not the title bar (minimise, maximise, etc.) and buttons from a scrollbar
-    if control.parent().friendly_class_name() in ["ScrollBar", "TitleBar"]:
-        return False
-
-    # Although not great, for now, we can attempt to ignore file buttons
-    if "Browse" in control.texts():
-        return False
-
-    return True
-
-
-def get_debug_info(control):
-    return {"text": control.texts()}
-
-
-def attempt_unique_id(control):
-    if control.automation_id() != "":
-        return {"auto_id": control.automation_id()}
-
 
 # Now we've executed all input precusors, check whether the application is still available
 # For example, clicking a "Cancel" button may close down the application
 if not application.is_process_running():
-    logger.info("Application's process has ended.")
+    logger.info("Application process has ended")
 
     output = {
         "application_alive": False,
@@ -295,11 +177,10 @@ if not application.is_process_running():
     )
 else:
     # Take a final image
-    base64_images.append(get_screenshot_base64())
+    base64_images.append(get_screenshot_base64(application))
 
     logger.info("Starting window enumeration...")
-    enumeration = application.windows(top_level_only=False, enabled_only=True)
-    interactive_controls = filter(is_interactive_control, enumeration)
+    found_controls = enumerate_controls(application)
     logger.info("Finished window enumeration...")
 
     output = {
@@ -307,20 +188,8 @@ else:
         "program_installed": False,
         "base64_images": base64_images,
         "top_window_texts": sorted(application.top_window().children_texts()),
-        "found_controls": [],
+        "found_controls": found_controls,
     }
-
-    # Now we need to output the list of possible controls
-    for control in interactive_controls:
-        control_type = None
-
-        output["found_controls"].append(
-            {
-                "type": control.friendly_class_name(),
-                "reference": attempt_unique_id(control),
-                "meta": get_debug_info(control),
-            }
-        )
 
     # Finally, kill the application
     application.kill(soft=False)
@@ -342,6 +211,8 @@ response = requests.post(
 
 if response.status_code == 200:
     logger.info("Successfully posted data")
+else:
+    logger.error("Failed to post data, status code: {}", response.status_code)
 
 if "--restart-at-end" in sys.argv:
     # https://stackoverflow.com/a/50826520
