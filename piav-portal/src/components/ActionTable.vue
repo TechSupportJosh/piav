@@ -9,11 +9,11 @@
       </tr>
     </thead>
     <tbody>
-      <tr v-for="(precursor, index) in actions" :key="index">
-        <td>{{ precursor.reference }}</td>
-        <td>{{ precursor.wait_for_element_timeout }}</td>
-        <td>{{ precursor.delay_after_action }}</td>
-        <td>Method: {{ precursor.method }}<br />Parameters: {{ precursor.method_params }}</td>
+      <tr v-for="(action, index) in actions" :key="index">
+        <td>Type: {{ action.control.type }}<br />Reference: {{ action.control.reference }}<br />Meta: {{ action.control.meta }}</td>
+        <td>{{ action.wait_for_element_timeout }}</td>
+        <td>{{ action.delay_after_action }}</td>
+        <td>Method: {{ action.method }}<br />Parameters: {{ action.method_params }}</td>
       </tr>
     </tbody>
   </table>
