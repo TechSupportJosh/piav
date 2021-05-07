@@ -11,22 +11,22 @@
       </tr>
     </tbody>
   </table>
-  <template v-if="data.top_window_texts && data.found_controls && data.base64_images">
+  <h3>Screenshot</h3>
+  <div class="mb-4">
+    <img :src="`data:image/jpeg;charset=utf-8;base64,${data.base64_images[currentImageIndex]}`" class="mb-4" />
+    <nav class="d-flex justify-content-center">
+      <ul class="pagination">
+        <li class="page-item" :class="{ active: index === currentImageIndex }" v-for="(image, index) in data.base64_images" :key="index">
+          <a class="page-link" href="#" @click.prevent="currentImageIndex = index">{{ convertImageIndexToLabel(index) }}</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  <template v-if="data.top_window_texts && data.found_controls">
     <h3>Window Text</h3>
     <ul>
       <li v-for="(text, index) in data.top_window_texts" :key="index">{{ text }}</li>
     </ul>
-    <h3>Screenshot</h3>
-    <div class="mb-4">
-      <img :src="`data:image/jpeg;charset=utf-8;base64,${data.base64_images[currentImageIndex]}`" class="mb-4" />
-      <nav class="d-flex justify-content-center">
-        <ul class="pagination">
-          <li class="page-item" :class="{ active: index === currentImageIndex }" v-for="(image, index) in data.base64_images" :key="index">
-            <a class="page-link" href="#" @click.prevent="currentImageIndex = index">{{ convertImageIndexToLabel(index) }}</a>
-          </li>
-        </ul>
-      </nav>
-    </div>
     <h3>Found Controls</h3>
     <table class="table">
       <thead>
@@ -38,9 +38,9 @@
       </thead>
       <tbody>
         <tr v-for="(control, index) in data.found_controls" :key="index">
-          <td>{{ control.control_type }}</td>
+          <td>{{ control.type }}</td>
           <td>{{ control.reference }}</td>
-          <td></td>
+          <td>{{ control.meta }}</td>
         </tr>
       </tbody>
     </table>

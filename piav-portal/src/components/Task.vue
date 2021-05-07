@@ -17,15 +17,22 @@
     <h2>Output</h2>
     <hr />
     <div v-if="taskOutput">
-      <h3>Window Enumeration</h3>
-      <window-enumeration :data="taskOutput.window_enumeration"></window-enumeration>
-      <hr />
-      <h3>Network Traffic</h3>
-      <network :network-events="taskOutput.kernel_events.net"></network>
-      <hr />
-      <h3>Registry Events</h3>
-      <registry :registry-events="taskOutput.kernel_events.registry"></registry>
-      <hr />
+      <template v-if="taskOutput.same_as">
+        <h4>
+          Same as <router-link :to="`/task/${taskOutput.same_as}`">{{ taskOutput.same_as }}</router-link>
+        </h4>
+      </template>
+      <template v-else>
+        <h3>Window Enumeration</h3>
+        <window-enumeration :data="taskOutput.window_enumeration"></window-enumeration>
+        <hr />
+        <h3>Network Traffic</h3>
+        <network :network-events="taskOutput.kernel_events.net"></network>
+        <hr />
+        <h3>Registry Events</h3>
+        <registry :registry-events="taskOutput.kernel_events.registry"></registry>
+        <hr />
+      </template>
     </div>
     <div v-else>
       <h4>No task output. This page will update when the task finishes.</h4>
@@ -34,7 +41,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, defineComponent, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "../plugins/router";
 import { TaskOutput } from "../models/types/TaskOutput";
 import Network from "./Network.vue";
@@ -54,15 +61,15 @@ export default defineComponent({
   setup: () => {
     const router = useRouter();
 
-    const taskId = router.currentRoute.value.params.taskId.toString();
-
     let pollInterval: number | null = null;
+
+    const taskId = computed(() => router.currentRoute.value.params.taskId?.toString());
 
     const taskInput = ref<TaskInput>();
     const taskOutput = ref<TaskOutput>();
 
     const pollData = async () => {
-      const response = await API.getTaskOutput(taskId);
+      const response = await API.getTaskOutput(taskId.value);
 
       // Once we get the output data, we can cancel the interval
       if (response) {
@@ -71,17 +78,25 @@ export default defineComponent({
       }
     };
 
-    onMounted(async () => {
-      const response = await API.getTaskInput(taskId);
+    watch(
+      taskId,
+      async () => {
+        if (pollInterval) clearInterval(pollInterval);
+        taskInput.value = undefined;
+        taskOutput.value = undefined;
 
-      // If this task doesn't exist, redirect to home
-      if (!response) return router.push("/");
+        const response = await API.getTaskInput(taskId.value);
 
-      taskInput.value = response;
+        // If this task doesn't exist, redirect to home
+        if (!response) return router.push("/");
 
-      pollData();
-      pollInterval = setInterval(pollData, 5000);
-    });
+        taskInput.value = response;
+
+        pollData();
+        pollInterval = setInterval(pollData, 5000);
+      },
+      { immediate: true }
+    );
 
     onBeforeUnmount(() => {
       if (pollInterval) clearInterval(pollInterval);
