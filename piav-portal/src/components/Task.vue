@@ -32,6 +32,9 @@
         <h3>Registry Events</h3>
         <registry :registry-events="taskOutput.kernel_events.registry"></registry>
         <hr />
+        <h3>File Events</h3>
+        <file :file-events="taskOutput.kernel_events.file"></file>
+        <hr />
       </template>
     </div>
     <div v-else>
@@ -41,11 +44,12 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, defineComponent, onBeforeUnmount, ref, watch } from "vue";
 import { useRouter } from "../plugins/router";
 import { TaskOutput } from "../models/types/TaskOutput";
 import Network from "./Network.vue";
 import Registry from "./Registry.vue";
+import File from "./File.vue";
 import WindowEnumeration from "./WindowEnumeration.vue";
 import ActionTable from "./ActionTable.vue";
 import API from "../utils/api";
@@ -57,19 +61,20 @@ export default defineComponent({
     WindowEnumeration,
     Registry,
     ActionTable,
+    File,
   },
   setup: () => {
     const router = useRouter();
 
     let pollInterval: number | null = null;
 
-    let taskId = "";
-
     const taskInput = ref<TaskInput>();
     const taskOutput = ref<TaskOutput>();
 
+    const taskId = computed(() => router.currentRoute.value.params.taskId.toString());
+
     const pollData = async () => {
-      const response = await API.getTaskOutput(taskId);
+      const response = await API.getTaskOutput(router.currentRoute.value.params.taskId.toString());
 
       // Once we get the output data, we can cancel the interval
       if (response) {
@@ -81,11 +86,9 @@ export default defineComponent({
     watch(
       () => router.currentRoute.value.params,
       async () => {
-        taskId = router.currentRoute.value.params.taskId.toString();
-
         if (pollInterval) clearInterval(pollInterval);
 
-        const response = await API.getTaskInput(taskId);
+        const response = await API.getTaskInput(router.currentRoute.value.params.taskId.toString());
 
         // If this task doesn't exist, redirect to home
         if (!response) return router.push("/");
