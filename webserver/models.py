@@ -28,6 +28,7 @@ class Action(BaseModel):
 class Task(BaseModel):
     id: str = Field(alias="_id")
     parent_task: Optional[str]
+    status: str
     executable_id: str
 
     setup_actions: List[Action]
@@ -67,17 +68,6 @@ class SubmitTaskOutput(BaseModel):
 class TaskOutput(SubmitTaskOutput):
     id: str = Field(alias="_id")
     same_as: str
-
-    @validator("id", pre=True, each_item=True)
-    def convert_id(cls, value):
-        if isinstance(value, ObjectId):
-            return str(value)
-        return value
-
-
-class QueueEntry(BaseModel):
-    id: str = Field(alias="_id")
-    status: str
 
     @validator("id", pre=True, each_item=True)
     def convert_id(cls, value):

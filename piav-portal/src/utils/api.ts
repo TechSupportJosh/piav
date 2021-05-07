@@ -11,12 +11,6 @@ const client = axios.create({
   validateStatus: undefined,
 });
 
-const getQueuedMachines = async () => {
-  const response = await client.get<QueueEntry[]>("/queue/");
-
-  if (response.status === 200) return response.data;
-};
-
 const getTaskInputs = async () => {
   const response = await client.get<TaskInput[]>(`/task/input`);
 
@@ -61,7 +55,6 @@ const setupExecutable = async (applicationName: string, fullInstallationName: st
 };
 
 export default {
-  getQueuedMachines,
   getTaskInput,
   getTaskInputs,
   getTaskOutput,

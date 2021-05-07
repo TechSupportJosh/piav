@@ -102,17 +102,15 @@ async def setup_executable(
     task_result = await db.input.insert_one(
         {
             "executable_id": str(executable_result.inserted_id),
+            "status": "waiting",
             "parent_task": None,
             "setup_actions": [],
             "actions": [],
         }
     )
 
-    # Create queue entry
-    await db.queue.insert_one({"_id": task_result.inserted_id, "status": "waiting"})
-
     sha256sum = hashlib.sha256(installer_bytes).hexdigest()
-    logger.info("Added %s to the queue", request.application_name)
+    logger.info("Created initial task for %s", request.application_name)
 
     executable = await db.executables.find_one({"_id": executable_result.inserted_id})
 

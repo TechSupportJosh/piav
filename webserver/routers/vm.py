@@ -35,30 +35,29 @@ ch.setFormatter(ClientFormatter())
 task_logger.addHandler(ch)
 
 
-async def update_queue_status(db: AsyncIOMotorDatabase, task_id: str, status: str):
-    await db.queue.update_one({"_id": ObjectId(task_id)}, {"$set": {"status": status}})
+async def update_task_status(db: AsyncIOMotorDatabase, task_id: ObjectId, status: str):
+    await db.input.update_one({"_id": task_id}, {"$set": {"status": status}})
 
 
 @router.post(
     "/request_task",
     response_model=models.Task,
     responses={
-        200: {"description": "Successfully retrieved a queued task."},
-        404: {"description": "No queued tasks found."},
+        200: {"description": "Successfully retrieved a waiting task."},
+        404: {"description": "No tasks waiting to be ran."},
     },
-    name="Request queued task",
+    name="Request waiting task",
 )
 async def request_task(db: AsyncIOMotorDatabase = Depends(get_db_instance)):
-    """Retrieves a task from the task queue. This is called by VMs when they first boot."""
-    queue_entry = await db.queue.find_one({"status": "waiting"})
+    """Retrieves a waiting task. This is called by VMs when they first boot."""
+    task = await db.input.find_one({"status": "waiting"})
 
     # If no task is currently waiting, just return 404
-    if queue_entry is None:
-        process_logger.debug("Task requested however no tasks are currently queued.")
-        raise HTTPException(status_code=404, detail="No queued tasks found.")
+    if task is None:
+        process_logger.debug("Task requested however no tasks are currently waiting.")
+        raise HTTPException(status_code=404, detail="No waiting tasks found.")
 
-    await update_queue_status(db, queue_entry["_id"], "started")
-    task = await db.input.find_one({"_id": queue_entry["_id"]})
+    await update_task_status(db, task["_id"], "running")
 
     # We need to retrieve the setup_actions by continously retrieving the previous task id
     setup_actions = []
@@ -115,8 +114,8 @@ async def submit_task(
         + len(task_output.kernel_events.net),
     )
 
-    # Mark queue entry as done
-    await update_queue_status(db, task_id, "finished")
+    # Mark task as finished
+    await update_task_status(db, ObjectId(task_id), "finished")
 
     # Only consider duplicate outputs if they're alive
     if task_output.window_enumeration.application_alive:
@@ -177,12 +176,13 @@ async def submit_task(
     for actions in enumerate_output_and_generate_actions(
         task_output.dict()["window_enumeration"]
     ):
-        result = await db.input.insert_one({"parent_task": task_id, "actions": actions})
+        result = await db.input.insert_one(
+            {"status": "waiting", "parent_task": task_id, "actions": actions}
+        )
         task_ids.append(result.inserted_id)
         process_logger.info(
-            "Queuing task %s, branched from %s", result.inserted_id, task_id
+            "Created task %s, branched from %s", result.inserted_id, task_id
         )
-        await db.queue.insert_one({"_id": result.inserted_id, "status": "waiting"})
 
     return {}
 

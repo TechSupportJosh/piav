@@ -25,17 +25,17 @@
 
 <script lang="ts">
 import { ref, defineComponent, onMounted, onBeforeUnmount } from "vue";
-import { QueueEntry } from "../models/types/Queue";
+import { TaskInput } from "../models/types/TaskInput";
 import API from "../utils/api";
 
 export default defineComponent({
   setup: () => {
-    const queueEntries = ref<QueueEntry[]>();
+    const queueEntries = ref<TaskInput[]>();
 
     let pollInterval: number | null = null;
 
     const pollData = async () => {
-      const response = await API.getQueuedMachines();
+      const response = await API.getTaskInputs();
 
       if (response) queueEntries.value = response;
     };
@@ -43,10 +43,12 @@ export default defineComponent({
     const statusToBootstrapClass = (status: string) => {
       switch (status) {
         case "waiting":
+          return "table-secondary";
+        case "running":
           return "table-primary";
-        case "started":
-          return "table-success";
         case "finished":
+          return "table-success";
+        case "failed":
           return "table-danger";
       }
       return "";
