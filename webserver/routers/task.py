@@ -90,3 +90,18 @@ async def get_task_output(
         raise HTTPException(status_code=202, detail="Task exists but has not finished.")
 
     return response
+
+
+@router.get(
+    "/same_as_outputs",
+    responses={
+        200: {
+            "description": "Task outputs with a non-empty same_as entry are returned.",
+            "model": List[models.TaskOutput],
+        },
+    },
+    name="Retrieve all task outputs with non-empty same_as entry",
+)
+async def get_same_as_task_outputs(db: AsyncIOMotorDatabase = Depends(get_db_instance)):
+    tasks = await db.output.find({"same_as": {"$ne": None}}).to_list(length=None)
+    return tasks

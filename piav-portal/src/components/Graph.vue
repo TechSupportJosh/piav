@@ -10,12 +10,13 @@ import api from "../utils/api";
 export default defineComponent({
   setup() {
     onMounted(async () => {
-      const response = await api.getTaskInputs();
+      const taskInputs = await api.getTaskInputs();
+      const sameAsOutputs = await api.getSameAsOutputs();
 
-      if (!response) return;
+      if (!taskInputs || !sameAsOutputs) return;
 
       const elements: cytoscape.ElementDefinition[] = [];
-      response.forEach((taskInput) => {
+      taskInputs.forEach((taskInput) => {
         elements.push({
           data: {
             id: taskInput._id,
@@ -30,6 +31,18 @@ export default defineComponent({
               target: taskInput._id,
             },
           });
+      });
+
+      sameAsOutputs.forEach((taskOutput) => {
+        if (!taskOutput.same_as) return;
+
+        elements.push({
+          data: {
+            id: taskOutput._id + taskOutput.same_as,
+            source: taskOutput._id,
+            target: taskOutput.same_as,
+          },
+        });
       });
 
       const cy = cytoscape({

@@ -35,6 +35,12 @@ const getTaskOutput = async (taskId: string) => {
   if (response.status === 200) return response.data;
 };
 
+const getSameAsOutputs = async () => {
+  const response = await client.get<TaskOutput[]>(`/task/same_as_outputs`);
+
+  if (response.status === 200) return response.data;
+};
+
 const getExecutables = async () => {
   const response = await client.get<Executable[]>("/executable/");
 
@@ -57,6 +63,7 @@ export default {
   getTaskInput,
   getTaskInputs,
   getTaskOutput,
+  getSameAsOutputs,
   getExecutables,
   setupExecutable,
 };

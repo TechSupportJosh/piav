@@ -69,10 +69,12 @@ export interface WindowEnumeration {
   }[];
 }
 export interface TaskOutput {
+  _id: string;
   window_enumeration: WindowEnumeration;
   kernel_events: {
     net: NetworkEvent[];
     file: FileEvent[];
     registry: RegistryEvent[];
   };
+  same_as?: string;
 }

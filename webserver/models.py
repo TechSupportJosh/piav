@@ -59,9 +59,20 @@ class KernelEvents(BaseModel):
     registry: List[KernelEvent]
 
 
-class TaskOutput(BaseModel):
+class SubmitTaskOutput(BaseModel):
     window_enumeration: WindowEnumeration
     kernel_events: KernelEvents
+
+
+class TaskOutput(SubmitTaskOutput):
+    id: str = Field(alias="_id")
+    same_as: str
+
+    @validator("id", pre=True, each_item=True)
+    def convert_id(cls, value):
+        if isinstance(value, ObjectId):
+            return str(value)
+        return value
 
 
 class QueueEntry(BaseModel):

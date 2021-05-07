@@ -93,7 +93,7 @@ async def request_task(db: AsyncIOMotorDatabase = Depends(get_db_instance)):
 )
 async def submit_task(
     task_id: str,
-    task_output: models.TaskOutput,
+    task_output: models.SubmitTaskOutput,
     db: AsyncIOMotorDatabase = Depends(get_db_instance),
 ):
     """Stores the result from executing the task ID. This is called by VMs when they finish."""
@@ -116,7 +116,7 @@ async def submit_task(
     )
 
     # Mark queue entry as done
-    await update_queue_status(db, task_id, "waiting")
+    await update_queue_status(db, task_id, "finished")
 
     # Only consider duplicate outputs if they're alive
     if task_output.window_enumeration.application_alive:
@@ -124,8 +124,12 @@ async def submit_task(
         window_enumeration = task_output.window_enumeration.dict()
         duplicate_result = await db.output.find_one(
             {
-                "top_window_texts": window_enumeration["top_window_texts"],
-                "found_controls": window_enumeration["found_controls"],
+                "window_enumeration.top_window_texts": window_enumeration[
+                    "top_window_texts"
+                ],
+                "window_enumeration.found_controls": window_enumeration[
+                    "found_controls"
+                ],
             }
         )
 
@@ -133,7 +137,12 @@ async def submit_task(
             # This output is identical to another output, indiciating that maybe we've hit a "back" button or cancel on a dialog.
             # Rather than inserting the output, insert a entry to the already discovered one
             await db.output.insert_one(
-                {"_id": ObjectId(task_id), "same_as": str(duplicate_result["_id"])}
+                {
+                    "_id": ObjectId(task_id),
+                    "same_as": str(duplicate_result["_id"]),
+                    "window_enumeration": [],
+                    "kernel_events": {"file": [], "net": [], "registry": []},
+                }
             )
 
             process_logger.info(
@@ -145,7 +154,7 @@ async def submit_task(
             return {}
 
     # Convert task output to dict and insert _id
-    output = {"_id": ObjectId(task_id)}
+    output = {"_id": ObjectId(task_id), "same_as": None}
     output.update(task_output.dict())
 
     await db.output.insert_one(output)
@@ -160,8 +169,6 @@ async def submit_task(
             process_logger.info("Application process ended after task %s", task_id)
 
         return {}
-
-    task_input = await db.input.find_one({"_id": ObjectId(task_id)})
 
     task_ids = []
 
