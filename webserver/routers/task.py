@@ -93,15 +93,27 @@ async def get_task_output(
 
 
 @router.get(
-    "/same_as_outputs",
+    "/output",
     responses={
         200: {
-            "description": "Task outputs with a non-empty same_as entry are returned.",
+            "description": "Task outputs is returned.",
             "model": List[models.TaskOutput],
         },
     },
-    name="Retrieve all task outputs with non-empty same_as entry",
+    name="Retrieve all task outputs",
 )
-async def get_same_as_task_outputs(db: AsyncIOMotorDatabase = Depends(get_db_instance)):
-    tasks = await db.output.find({"same_as": {"$ne": None}}).to_list(length=None)
+async def get_task_outputs(
+    kernel_events: bool = True,
+    window_enumeration: bool = True,
+    db: AsyncIOMotorDatabase = Depends(get_db_instance),
+):
+    projection = {"_id": 1, "same_as": 1}
+
+    print(window_enumeration)
+    if window_enumeration:
+        projection["window_enumeration"] = 1
+    if kernel_events:
+        projection["kernel_events"] = 1
+
+    tasks = await db.output.find({}, projection).to_list(length=None)
     return tasks

@@ -10,8 +10,14 @@ class Reference(BaseModel):
     auto_id: str
 
 
-class Action(BaseModel):
+class UIControl(BaseModel):
+    type: str
     reference: Reference
+    meta: Dict[str, Any]
+
+
+class Action(BaseModel):
+    control: UIControl
     wait_for_element_timeout: int = 15
     delay_after_action: int = 10
 
@@ -32,12 +38,6 @@ class Task(BaseModel):
         if isinstance(value, ObjectId):
             return str(value)
         return value
-
-
-class UIControl(BaseModel):
-    control_type: str
-    reference: Reference
-    meta: Optional[Dict[str, Any]]
 
 
 class WindowEnumeration(BaseModel):

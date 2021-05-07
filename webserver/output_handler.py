@@ -14,7 +14,7 @@ output_logger.addHandler(ch)
 def get_action_for_button(button_control):
     # Add new precursor, click on this button
     return {
-        "reference": button_control["reference"],
+        "control": button_control,
         "wait_for_element_timeout": 15,  # TODO: dynamic delays
         "delay_after_action": 10,
         "method": "click",
@@ -31,16 +31,12 @@ def enumerate_output_and_generate_actions(task_output):
     output_logger.debug("Input elements: %s", str(output_controls))
 
     # Create a list of all the different types of controls
-    buttons = list(
-        filter(lambda element: element["control_type"] == "Button", output_controls)
-    )
+    buttons = list(filter(lambda element: element["type"] == "Button", output_controls))
     radio_buttons = list(
-        filter(
-            lambda element: element["control_type"] == "RadioButton", output_controls
-        )
+        filter(lambda element: element["type"] == "RadioButton", output_controls)
     )
     checkboxes = list(
-        filter(lambda element: element["control_type"] == "CheckBox", output_controls)
+        filter(lambda element: element["type"] == "CheckBox", output_controls)
     )
 
     output_logger.debug("Buttons: %s", str(buttons))
@@ -57,7 +53,7 @@ def enumerate_output_and_generate_actions(task_output):
             # Click on this radio button
             output.append(
                 {
-                    "reference": radio_button["reference"],
+                    "control": radio_button,
                     "wait_for_element_timeout": 15,  # TODO: dynamic delays
                     "delay_after_action": 10,
                     "method": "click",
@@ -84,7 +80,7 @@ def enumerate_output_and_generate_actions(task_output):
             for box_index, value in enumerate(checkboxes_state):
                 output.append(
                     {
-                        "reference": checkboxes[box_index]["reference"],
+                        "control": checkboxes[box_index],
                         "wait_for_element_timeout": 15,  # TODO: dynamic delays
                         "delay_after_action": 2,
                         "method": "click",

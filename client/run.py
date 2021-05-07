@@ -150,7 +150,9 @@ base64_images.append(get_screenshot_base64())
 
 def execute_action(application, base64_images, logger, action):
     # Find the control referenced
-    control_reference = application.window(**action["reference"], top_level_only=False)
+    control_reference = application.window(
+        **action["control"]["reference"], top_level_only=False
+    )
 
     timeout = action.get("wait_for_element_timeout", 0)
     try:
@@ -158,7 +160,7 @@ def execute_action(application, base64_images, logger, action):
     except pywinauto.timings.TimeoutError:
         logger.warning(
             "Control {} was not available after {} seconds.",
-            action["reference"],
+            action["control"],
             timeout,
         )
         # TODO: Error handling for when it doesn't go as expected...
@@ -314,7 +316,7 @@ else:
 
         output["found_controls"].append(
             {
-                "control_type": control.friendly_class_name(),
+                "type": control.friendly_class_name(),
                 "reference": attempt_unique_id(control),
                 "meta": get_debug_info(control),
             }
