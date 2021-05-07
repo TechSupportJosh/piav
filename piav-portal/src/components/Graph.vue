@@ -13,7 +13,17 @@ export default defineComponent({
   setup() {
     const taskActionsToString = (taskInput: TaskInput) => {
       const actions = taskInput.actions;
-      return actions.map((action) => `${action.method} "${action.control.meta.text}"`).join("\n");
+      return actions.map((action) => `${methodToHumanMethod(action.method)} "${action.control.meta.text}"`).join("\n");
+    };
+
+    const methodToHumanMethod = (method: string) => {
+      switch (method) {
+        case "click":
+        case "click_input":
+          return "Click";
+        default:
+          return method;
+      }
     };
 
     onMounted(async () => {
