@@ -17,7 +17,7 @@ def get_action_for_button(button_control):
         "control": button_control,
         "wait_for_element_timeout": 15,  # TODO: dynamic delays
         "delay_after_action": 10,
-        "method": "click",
+        "method": "click_input",
         "method_params": {},
     }
 
@@ -56,7 +56,7 @@ def enumerate_output_and_generate_actions(task_output):
                     "control": radio_button,
                     "wait_for_element_timeout": 15,  # TODO: dynamic delays
                     "delay_after_action": 10,
-                    "method": "click",
+                    "method": "click_input",
                     "method_params": {},
                 }
             )
@@ -83,7 +83,7 @@ def enumerate_output_and_generate_actions(task_output):
                         "control": checkboxes[box_index],
                         "wait_for_element_timeout": 15,  # TODO: dynamic delays
                         "delay_after_action": 2,
-                        "method": "click",
+                        "method": "click_input",
                         "method_params": {
                             "method": "set_toggle_state",
                             "parameters": {"state": value},
