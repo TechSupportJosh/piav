@@ -4,6 +4,7 @@ import Task from "../components/Task.vue";
 import Tasks from "../components/Tasks.vue";
 import Executable from "../components/Executable.vue";
 import SetupExecutable from "../components/SetupExecutable.vue";
+import Graph from "../components/Graph.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -27,6 +28,13 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/task/:taskId",
     component: Task,
+  },
+  {
+    path: "/graph",
+    component: Graph,
+    meta: {
+      navigationLabel: "Graph",
+    },
   },
 ];
 
