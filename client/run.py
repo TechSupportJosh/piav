@@ -37,7 +37,7 @@ def start_fibratus(executable_name):
                 executable_name
             ),
             "-f",
-            "capture",
+            "piav_kernel_capture",
             "--filament.path",
             os.getcwd(),
         ],
