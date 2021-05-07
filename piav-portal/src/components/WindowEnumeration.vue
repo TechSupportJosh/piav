@@ -64,9 +64,9 @@ export default defineComponent({
     const convertImageIndexToLabel = (index: number) => {
       switch (index) {
         case 0:
-          return "Start";
+          return "Loaded";
         case props.data.base64_images!.length - 1:
-          return "End";
+          return "Enumeration";
         default:
           return index.toString();
       }
