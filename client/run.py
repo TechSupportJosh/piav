@@ -45,8 +45,7 @@ def start_fibratus(executable_name):
     )
 
 
-BASE_API_URL = "http://172.28.48.1:8000"
-API_URL = BASE_API_URL + "/vm"
+API_URL = "http://172.28.48.1:8000"
 failed_requests = 0
 
 # Request task ID
@@ -58,7 +57,7 @@ while True:
         time.sleep(timeout)
 
     try:
-        response = requests.post(API_URL + "/request_task", timeout=10)
+        response = requests.post(API_URL + "/vm/request_task", timeout=10)
     except requests.exceptions.RequestException as e:  # This is the correct syntax
         print("Unable to connect to server...")
         failed_requests += 1
@@ -79,7 +78,7 @@ print(task_input)
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("logger")
 
-http_handler = JSONHTTPHandler(API_URL, "/log/" + task_input["_id"])
+http_handler = JSONHTTPHandler(API_URL, "/vm/log/" + task_input["_id"])
 http_handler.setLevel(logging.DEBUG)
 
 logger.addHandler(http_handler)
@@ -88,16 +87,14 @@ logger = StyleAdapter(logger)
 
 logger.info("Received task, retrieving application details...")
 
-executable = requests.get(
-    BASE_API_URL + "/portal/executable/" + task_input["executable_id"]
-).json()
+executable = requests.get(API_URL + "/executable/" + task_input["executable_id"]).json()
 
 logger.info("Retrieved application, downloading executable...")
 
 executable_file_path = "C:\\Users\\piav\\Documents\\{}".format(executable["file_name"])
 with open(executable_file_path, "wb") as executable_file:
     executable_file.write(
-        requests.get(BASE_API_URL + "/executables/" + executable["file_name"]).content
+        requests.get(API_URL + "/executables/" + executable["file_name"]).content
     )
 
 logger.info("Executable downloaded, starting...")
@@ -331,13 +328,13 @@ fibratus_output = {"registry": [], "file": [], "net": []}
 if os.path.exists("fibratus_capture.json"):
     with open("fibratus_capture.json", "r") as fibratus_output_file:
         fibratus_output = json.load(fibratus_output_file)
-    os.remove("fibratus_output.json")
+    os.remove("fibratus_capture.json")
 else:
     logger.warning("No Fiberatus output found")
 
 logger.info("Uploading data to server...")
 response = requests.post(
-    API_URL + "/submit_task/" + task_input["_id"],
+    API_URL + "/vm/submit_task/" + task_input["_id"],
     json={"window_enumeration": output, "kernel_events": fibratus_output},
 )
 
