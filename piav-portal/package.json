@@ -10,6 +10,7 @@
     "@types/cytoscape": "^3.14.15",
     "axios": "^0.21.1",
     "cytoscape": "^3.18.2",
+    "cytoscape-dagre": "^2.3.2",
     "json-tree-view-vue3": "^0.1.14",
     "vue": "^3.0.5",
     "vue-json-component": "^0.4.1",
