@@ -63,13 +63,13 @@ export default defineComponent({
 
     let pollInterval: number | null = null;
 
-    const taskId = computed(() => router.currentRoute.value.params.taskId?.toString());
+    let taskId = "";
 
     const taskInput = ref<TaskInput>();
     const taskOutput = ref<TaskOutput>();
 
     const pollData = async () => {
-      const response = await API.getTaskOutput(taskId.value);
+      const response = await API.getTaskOutput(taskId);
 
       // Once we get the output data, we can cancel the interval
       if (response) {
@@ -79,18 +79,19 @@ export default defineComponent({
     };
 
     watch(
-      taskId,
+      () => router.currentRoute.value.params,
       async () => {
-        if (pollInterval) clearInterval(pollInterval);
-        taskInput.value = undefined;
-        taskOutput.value = undefined;
+        taskId = router.currentRoute.value.params.taskId.toString();
 
-        const response = await API.getTaskInput(taskId.value);
+        if (pollInterval) clearInterval(pollInterval);
+
+        const response = await API.getTaskInput(taskId);
 
         // If this task doesn't exist, redirect to home
         if (!response) return router.push("/");
 
         taskInput.value = response;
+        taskOutput.value = undefined;
 
         pollData();
         pollInterval = setInterval(pollData, 5000);
