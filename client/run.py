@@ -316,7 +316,7 @@ else:
             {
                 "control_type": control.friendly_class_name(),
                 "reference": attempt_unique_id(control),
-                "_debug": get_debug_info(control),
+                "meta": get_debug_info(control),
             }
         )
 

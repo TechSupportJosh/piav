@@ -37,7 +37,7 @@ class Task(BaseModel):
 class UIControl(BaseModel):
     control_type: str
     reference: Reference
-    _debug: Dict[str, any]
+    meta: Optional[Dict[str, Any]]
 
 
 class WindowEnumeration(BaseModel):
