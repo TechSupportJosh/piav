@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.config import LOGGING_CONFIG
 
 from database import close_db, connect_db
-from routers import executable, task, vm
+from routers import executable, task, vm, error
 
 app = FastAPI()
 
@@ -25,6 +25,7 @@ app.add_middleware(
 app.include_router(executable.router)
 app.include_router(task.router)
 app.include_router(vm.router)
+app.include_router(error.router)
 
 app.mount(
     "/executables",

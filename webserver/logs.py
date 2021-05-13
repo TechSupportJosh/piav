@@ -45,4 +45,4 @@ class ClientFormatter(CustomFormatter):
         + Fore.RESET
         + "> "
     )
-    format_suffix = "%(message)s"
+    format_suffix = "%(message)s" + Fore.RESET

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Error } from "../models/types/Error";
 import { Executable } from "../models/types/Executable";
 import { QueueEntry } from "../models/types/Queue";
 import { TaskInput } from "../models/types/TaskInput";
@@ -54,6 +55,12 @@ const setupExecutable = async (applicationName: string, fullInstallationName: st
   return response.status === 201;
 };
 
+const getErrors = async () => {
+  const response = await client.get<Error[]>(`/error/`);
+
+  if (response.status === 200) return response.data;
+};
+
 export default {
   getTaskInput,
   getTaskInputs,
@@ -61,4 +68,5 @@ export default {
   getTaskOutputs,
   getExecutables,
   setupExecutable,
+  getErrors,
 };

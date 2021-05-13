@@ -81,6 +81,10 @@ class LogMessage(BaseModel):
     levelno: int
 
 
+class ErrorMessage(BaseModel):
+    stack_trace: str
+
+
 class SetupExecutable(BaseModel):
     application_name: str
     full_installation_name: str

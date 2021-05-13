@@ -5,6 +5,7 @@ import Tasks from "../components/Tasks.vue";
 import Executable from "../components/Executable.vue";
 import SetupExecutable from "../components/SetupExecutable.vue";
 import Graph from "../components/Graph.vue";
+import Errors from "../components/Errors.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -34,6 +35,13 @@ const routes: RouteRecordRaw[] = [
     component: Graph,
     meta: {
       navigationLabel: "Graph",
+    },
+  },
+  {
+    path: "/errors",
+    component: Errors,
+    meta: {
+      navigationLabel: "Errors",
     },
   },
 ];
