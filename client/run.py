@@ -136,23 +136,6 @@ try:
 
         execute_action(application, base64_images, logger, action)
 
-    # Now check whether there's a progress bar on the screen (for example, extracting resources)
-    # before enumerating options
-    progress_bar = application.window(control_type="ProgressBar", top_level_only=False)
-    if progress_bar.exists():
-        # Resolve the reference to a ProgressBar object
-        progress_bar = progress_bar.wait("exists")
-
-        # Wait until value is 100%
-        progress_bar_value = progress_bar.legacy_properties().get("Value", "100%")
-        while progress_bar_value != "100%":
-            progress_bar_value = progress_bar.legacy_properties().get("Value", "100%")
-            logger.info(
-                "Waiting for progress bar to reach 100%, current value: {}",
-                progress_bar_value,
-            )
-            time.sleep(5)
-
     if fibratus_process is not None:
         logger.info("Stopping fibratus...")
         # Send CTRL+C to the fibratus process to stop it

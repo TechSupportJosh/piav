@@ -34,5 +34,22 @@ def execute_action(application, base64_images, logger, action):
     logger.debug("Waiting for {} seconds.", delay)
     time.sleep(delay)
 
+    # Now check whether there's a progress bar on the screen (for example, extracting resources)
+    # before enumerating options
+    progress_bar = application.window(control_type="ProgressBar", top_level_only=False)
+    if progress_bar.exists():
+        # Resolve the reference to a ProgressBar object
+        progress_bar = progress_bar.wait("exists")
+
+        # Wait until value is 100%
+        progress_bar_value = progress_bar.legacy_properties().get("Value", "100%")
+        while progress_bar_value != "100%":
+            progress_bar_value = progress_bar.legacy_properties().get("Value", "100%")
+            logger.info(
+                "Waiting for progress bar to reach 100%, current value: {}",
+                progress_bar_value,
+            )
+            time.sleep(5)
+
     # After running this precursor, take a screenshot
     base64_images.append(get_screenshot_base64(application))
