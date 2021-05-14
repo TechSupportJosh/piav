@@ -3,17 +3,21 @@
     <h1 class="mb-4">Task {{ taskId }}</h1>
     <h2>Input</h2>
     <hr />
-    <h3>Setup Actions</h3>
-    <div v-if="taskInput">
-      <action-table :actions="taskInput.setup_actions"></action-table>
-    </div>
-    <h3>Main Actions</h3>
-    <div v-if="taskInput">
-      <action-table :actions="taskInput.actions"></action-table>
-    </div>
-    <div v-else>
-      <h4>Loading...</h4>
-    </div>
+    <template v-if="taskInput">
+      <h3>Setup Actions</h3>
+      <div>
+        <action-table :actions="taskInput.setup_actions"></action-table>
+      </div>
+      <h3>Main Actions</h3>
+      <div>
+        <action-table :actions="taskInput.actions"></action-table>
+      </div>
+    </template>
+    <template v-if="taskInput">
+      <h2>Errors</h2>
+      <hr />
+      <errors :taskId="taskInput?._id" class="mb-4"></errors>
+    </template>
     <h2>Output</h2>
     <hr />
     <div v-if="taskOutput">
@@ -52,6 +56,7 @@ import Registry from "./Registry.vue";
 import File from "./File.vue";
 import WindowEnumeration from "./WindowEnumeration.vue";
 import ActionTable from "./ActionTable.vue";
+import Errors from "./Errors.vue";
 import API from "../utils/api";
 import { TaskInput } from "../models/types/TaskInput";
 
@@ -62,6 +67,7 @@ export default defineComponent({
     Registry,
     ActionTable,
     File,
+    Errors,
   },
   setup: () => {
     const router = useRouter();

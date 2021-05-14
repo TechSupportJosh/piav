@@ -1,14 +1,12 @@
 <template>
-  <div class="container">
-    <h1 class="mb-4">Errors</h1>
-    <ul class="list-group">
-      <li class="list-group-item" v-for="error in errors">
-        <h4>{{ error.task_id }}</h4>
-        <pre><code>{{error.stack_trace}}</code></pre>
-      </li>
-    </ul>
-    {{ errors }}
-  </div>
+  <ul class="list-group">
+    <li class="list-group-item" v-for="error in errors">
+      <strong>{{ new Date(error.time * 1000).toLocaleString() }}</strong>
+      <br />
+      <br />
+      <pre><code>{{error.stack_trace}}</code></pre>
+    </li>
+  </ul>
 </template>
 
 <script lang="ts">
@@ -17,13 +15,16 @@ import { Error } from "../models/types/Error";
 import API from "../utils/api";
 
 export default defineComponent({
-  setup: () => {
+  props: {
+    taskId: String,
+  },
+  setup: (props) => {
     const errors = ref<Error[]>();
 
     let pollInterval: number | null = null;
 
     const pollData = async () => {
-      const response = await API.getErrors();
+      const response = props.taskId ? await API.getError(props.taskId) : await API.getErrors();
 
       if (response) errors.value = response;
     };

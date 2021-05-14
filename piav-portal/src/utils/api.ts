@@ -61,6 +61,12 @@ const getErrors = async () => {
   if (response.status === 200) return response.data;
 };
 
+const getError = async (taskId: string) => {
+  const response = await client.get<Error[]>(`/error/` + taskId);
+
+  if (response.status === 200) return response.data;
+};
+
 export default {
   getTaskInput,
   getTaskInputs,
@@ -69,4 +75,5 @@ export default {
   getExecutables,
   setupExecutable,
   getErrors,
+  getError,
 };
