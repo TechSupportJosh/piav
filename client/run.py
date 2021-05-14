@@ -32,13 +32,17 @@ while True:
         print("Unable to connect to server...")
         failed_requests += 1
         continue
-    
+
     if response.status_code != 200:
         if response.status_code == 404:
             print("No tasks are current queued...")
         else:
-            print("Received error when requesting task, status code {}".format(response.status_code))
-        
+            print(
+                "Received error when requesting task, status code {}".format(
+                    response.status_code
+                )
+            )
+
         failed_requests += 1
         continue
 
@@ -62,8 +66,6 @@ with open(executable_file_path, "wb") as executable_file:
 logger.info("Executable downloaded, starting...")
 
 try:
-    print([1, 2, 3, 4][851])
-
     # Delete old fibratus output if it exists
     try:
         os.remove("fibratus_capture.json")
