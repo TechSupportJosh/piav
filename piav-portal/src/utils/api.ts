@@ -1,7 +1,6 @@
 import axios from "axios";
 import { Error } from "../models/types/Error";
 import { Executable } from "../models/types/Executable";
-import { QueueEntry } from "../models/types/Queue";
 import { TaskInput } from "../models/types/TaskInput";
 import { TaskOutput } from "../models/types/TaskOutput";
 
@@ -62,9 +61,15 @@ const getErrors = async () => {
 };
 
 const getError = async (taskId: string) => {
-  const response = await client.get<Error[]>(`/error/` + taskId);
+  const response = await client.get<Error[]>(`/error/${taskId}`);
 
   if (response.status === 200) return response.data;
+};
+
+const restartTask = async (taskId: string) => {
+  const response = await client.post(`/task/restart/${taskId}`);
+
+  return response.status === 200;
 };
 
 export default {
@@ -76,4 +81,5 @@ export default {
   setupExecutable,
   getErrors,
   getError,
+  restartTask,
 };

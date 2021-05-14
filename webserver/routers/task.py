@@ -5,6 +5,7 @@ from database import get_db_instance
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from utils import update_task_status
 
 router = APIRouter(
     prefix="/task",
@@ -117,3 +118,21 @@ async def get_task_outputs(
 
     tasks = await db.output.find({}, projection).to_list(length=None)
     return tasks
+
+
+@router.post(
+    "/restart/{task_id}",
+    responses={
+        200: {
+            "description": "Task status is reset to waiting.",
+            "model": {},
+        },
+    },
+    name="Restart task",
+)
+async def restart_task(
+    task_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_db_instance),
+):
+    await update_task_status(db, ObjectId(task_id), "waiting")
+    return {}

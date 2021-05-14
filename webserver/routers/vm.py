@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 import models
 from bson.objectid import ObjectId
@@ -9,7 +8,7 @@ from fastapi.params import Depends
 from logs import ClientFormatter, CustomFormatter
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from output_handler import enumerate_output_and_generate_actions
-from starlette.responses import RedirectResponse
+from utils import update_task_status
 
 router = APIRouter(
     prefix="/vm",
@@ -33,10 +32,6 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(ClientFormatter())
 task_logger.addHandler(ch)
-
-
-async def update_task_status(db: AsyncIOMotorDatabase, task_id: ObjectId, status: str):
-    await db.input.update_one({"_id": task_id}, {"$set": {"status": status}})
 
 
 @router.post(

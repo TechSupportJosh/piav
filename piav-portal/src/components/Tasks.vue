@@ -6,17 +6,21 @@
         <tr>
           <th scope="col">Task ID</th>
           <th scope="col">Status</th>
+          <th scope="col">Restart</th>
         </tr>
       </thead>
       <tbody>
-        <tr class="text-center" v-if="queueEntries === undefined">
+        <tr class="text-center" v-if="taskInputs === undefined">
           <td :colspan="2"><h4>Loading...</h4></td>
         </tr>
-        <tr v-else v-for="entry in queueEntries" :key="entry._id">
+        <tr v-else v-for="task in taskInputs" :key="task._id">
           <th scope="row">
-            <router-link :to="`/task/${entry._id}`">{{ entry._id }}</router-link>
+            <router-link :to="`/task/${task._id}`">{{ task._id }}</router-link>
           </th>
-          <td class="text-capitalize" :class="statusToBootstrapClass(entry.status)">{{ entry.status }}</td>
+          <td class="text-capitalize" :class="statusToBootstrapClass(task.status)">{{ task.status }}</td>
+          <td>
+            <button class="w-100 btn btn-primary" :disabled="task.status !== 'failed'" @click="restartTask(task._id)">Restart Task</button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -30,14 +34,14 @@ import API from "../utils/api";
 
 export default defineComponent({
   setup: () => {
-    const queueEntries = ref<TaskInput[]>();
+    const taskInputs = ref<TaskInput[]>();
 
     let pollInterval: number | null = null;
 
     const pollData = async () => {
       const response = await API.getTaskInputs();
 
-      if (response) queueEntries.value = response;
+      if (response) taskInputs.value = response;
     };
 
     const statusToBootstrapClass = (status: string) => {
@@ -54,6 +58,12 @@ export default defineComponent({
       return "";
     };
 
+    const restartTask = async (taskId: string) => {
+      const response = await API.restartTask(taskId);
+
+      if (response) pollData();
+    };
+
     onMounted(() => {
       pollData();
       pollInterval = setInterval(pollData, 5000);
@@ -64,8 +74,9 @@ export default defineComponent({
     });
 
     return {
-      queueEntries,
+      taskInputs,
       statusToBootstrapClass,
+      restartTask,
     };
   },
 });
