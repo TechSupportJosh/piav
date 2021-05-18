@@ -24,8 +24,8 @@ def file_path(string):
 parser = argparse.ArgumentParser(
     description="Watch PIAV VMs for when they power down, as to automatically restart them."
 )
-parser.add_argument("vm_directory", type=dir_path, help="Directory containing all VMs")
-parser.add_argument("vmrun_path", type=file_path, help="Path to the vmrun executable")
+parser.add_argument("vm-directory", type=dir_path, help="Directory containing all VMs")
+parser.add_argument("vmrun-path", type=file_path, help="Path to the vmrun executable")
 parser.add_argument(
     "--poll-time", type=int, help="How often are VM statuses polled", default=30
 )
