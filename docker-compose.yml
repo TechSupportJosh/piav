@@ -15,12 +15,14 @@ services:
     ports:
       - 8000:8000
     environment:
-      - "MONGO_DB_URI=mongodb://10.16.0.4:27017"
+      - MONGO_DB_URI=mongodb://10.16.0.4:27017
     volumes:
       - ./uploaded-files:/app/uploads
     networks:
       piav-network:
         ipv4_address: 10.16.0.3
+    depends_on:
+      - database
   database:
     image: "mongo"
     container_name: "piav-database"
