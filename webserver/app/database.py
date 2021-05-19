@@ -1,5 +1,7 @@
+from app.settings import get_settings
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
+settings = get_settings()
 
 db_client: AsyncIOMotorClient = None
 
@@ -15,7 +17,7 @@ async def connect_db():
     """Create database connection."""
     global db_client
 
-    db_client = AsyncIOMotorClient("mongodb://localhost:27017")
+    db_client = AsyncIOMotorClient(settings.mongo_db_uri)
 
 
 async def close_db():
