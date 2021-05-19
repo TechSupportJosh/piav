@@ -25,15 +25,18 @@ By utilising disk modes within VMware/VirtualBox, we can create a VM which disca
    - Select Offline account
    - Select Limited experience
    - Enter piav for all username/passwords/security questions
+   - Select no to all the telemetry
 
-3. Disable UAC
+3. Install open vm tools and reboot
+
+4. Disable UAC
     - Type uac into the taskbar
     - Select never notify
-4. Install Python 3.9.4 with the 64-bit Windows installer (https://www.python.org/ftp/python/3.9.4/python-3.9.4-amd64.exe)
+5. Install Python 3.9.4 with the 64-bit Windows installer (https://www.python.org/ftp/python/3.9.4/python-3.9.4-amd64.exe)
     - Ensure "Install launcher for all users" and "Add Python 3.9 to PATH" is checked
     - Disable the PATH limit length
-5. Install Fibratus (https://github.com/rabbitstack/fibratus/releases)
-6. Enable automatic login by following this guide https://docs.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon
+6. Install Fibratus (https://github.com/rabbitstack/fibratus/releases)
+7. Enable automatic login by following this guide https://docs.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon
     - Run regedit 
     - Go to `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon`
     - Set AutoAdminLogin to `1`
@@ -41,7 +44,7 @@ By utilising disk modes within VMware/VirtualBox, we can create a VM which disca
     - Create key `DefaultPassword` by doing Edit > New > String Value
     - Enter `piav` as the value
 
-7. pip install -r requirements.txt
+8. pip install -r requirements.txt
 
 ## Virtualisation Notes
 

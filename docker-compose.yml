@@ -1,0 +1,26 @@
+version: "3"
+
+services:
+  portal:
+    build: "./piav-portal"
+    container_name: "piav-portal"
+    ports:
+      - 80:80
+  webserver:
+    build: "./webserver"
+    container_name: "piav-webserver"
+    ports:
+      - 8000:8000
+    environment:
+      - MONGO_DB_URI=mongodb://localhost:27017
+  database:
+    image: "mongo"
+    container_name: "piav-database"
+    ports:
+      - 27017:27017
+    volumes:
+      - database_volume:/data/db
+
+volumes:
+  database_volume:
+    external: false
