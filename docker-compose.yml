@@ -2,17 +2,25 @@ version: "3"
 
 services:
   portal:
-    build: "./piav-portal"
+    build: "./portal"
     container_name: "piav-portal"
     ports:
       - 80:80
-  webserver:
-    build: "./webserver"
-    container_name: "piav-webserver"
+    networks:
+      piav-network:
+        ipv4_address: 10.16.0.2
+  api:
+    build: "./api"
+    container_name: "piav-api"
     ports:
       - 8000:8000
     environment:
-      - MONGO_DB_URI=mongodb://localhost:27017
+      - "MONGO_DB_URI=mongodb://10.16.0.4:27017"
+    volumes:
+      - ./uploaded-files:/app/uploads
+    networks:
+      piav-network:
+        ipv4_address: 10.16.0.3
   database:
     image: "mongo"
     container_name: "piav-database"
@@ -20,7 +28,19 @@ services:
       - 27017:27017
     volumes:
       - database_volume:/data/db
+    networks:
+      piav-network:
+        ipv4_address: 10.16.0.4
 
 volumes:
   database_volume:
     external: false
+
+networks:
+  piav-network:
+    name: PIAV-network
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.16.0.0/24
