@@ -51,5 +51,7 @@ def execute_action(application, base64_images, logger, action):
             )
             time.sleep(5)
 
-    # After running this precursor, take a screenshot
-    base64_images.append(get_screenshot_base64(application))
+    screenshot = get_screenshot_base64(application)
+    if screenshot is not None:
+        # After running this precursor, take a screenshot
+        base64_images.append(screenshot)
