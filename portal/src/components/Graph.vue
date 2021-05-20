@@ -55,6 +55,8 @@ export default defineComponent({
 
         if (taskOutput && !taskOutput.window_enumeration.application_alive) node.style.backgroundColor = "red";
 
+        if (taskOutput && taskOutput.window_enumeration.program_installed) node.style.backgroundColor = "green";
+
         elements.push(node);
         if (taskInput.parent_task) {
           parents[taskInput._id] = taskInput.parent_task;
