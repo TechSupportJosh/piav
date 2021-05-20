@@ -4,7 +4,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted } from "vue";
-import cytoscape from "cytoscape";
+import cytoscape, { ElementDefinition } from "cytoscape";
 import api from "../utils/api";
 import dagre from "cytoscape-dagre";
 import { Action, TaskInput } from "../models/types/TaskInput";
@@ -13,14 +13,18 @@ export default defineComponent({
   setup() {
     const taskActionsToString = (taskInput: TaskInput) => {
       const actions = taskInput.actions;
-      return actions.map((action) => `${methodToHumanMethod(action.method)} "${action.control.meta.text}"`).join("\n");
+      return actions
+        .map((action) => `${methodToHumanMethod(action.method, action.method_params)} "${action.control.meta.text}"`)
+        .join("\n");
     };
 
-    const methodToHumanMethod = (method: string) => {
+    const methodToHumanMethod = (method: string, params: Record<string, any>) => {
       switch (method) {
         case "click":
         case "click_input":
           return "Click";
+        case "set_toggle_state":
+          return params.state ? "Toggle" : "Untoggle";
         default:
           return method;
       }
@@ -28,7 +32,7 @@ export default defineComponent({
 
     onMounted(async () => {
       const taskInputs = await api.getTaskInputs();
-      const taskOutputs = await api.getTaskOutputs(false, false);
+      const taskOutputs = await api.getTaskOutputs(true, false);
 
       if (!taskInputs || !taskOutputs) return;
 
@@ -38,14 +42,20 @@ export default defineComponent({
       const elements: cytoscape.ElementDefinition[] = [];
       taskInputs.forEach((taskInput) => {
         // We don't draw same_as outputs as a new node
-        if (taskOutputs.find((output) => output._id === taskInput._id && output.same_as)) return;
+        const taskOutput = taskOutputs.find((output) => output._id === taskInput._id);
+        if (taskOutput && taskOutput.same_as) return;
 
-        elements.push({
+        const node: ElementDefinition = {
           data: {
             id: taskInput._id,
             name: taskInput._id,
           },
-        });
+          style: {},
+        };
+
+        if (taskOutput && !taskOutput.window_enumeration.application_alive) node.style.backgroundColor = "red";
+
+        elements.push(node);
         if (taskInput.parent_task) {
           parents[taskInput._id] = taskInput.parent_task;
 
