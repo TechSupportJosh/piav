@@ -83,10 +83,9 @@ def enumerate_output_and_generate_actions(task_output):
                         "control": checkboxes[box_index],
                         "wait_for_element_timeout": 15,  # TODO: dynamic delays
                         "delay_after_action": 2,
-                        "method": "click_input",
+                        "method": "set_toggle_state",
                         "method_params": {
-                            "method": "set_toggle_state",
-                            "parameters": {"state": value},
+                            "state": value,
                         },
                     }
                 )
