@@ -44,7 +44,55 @@ By utilising disk modes within VMware/VirtualBox, we can create a VM which disca
     - Create key `DefaultPassword` by doing Edit > New > String Value
     - Enter `piav` as the value
 
-8. pip install -r requirements.txt
+8. Copy the client directory from the  repo into C:\piav
+9. cd into the piav directory
+10. pip install -r requirements.txt
+11. Run the pywin32 post install script (c:\users\piav\appdata\local\programs\python\python39\scripts\pywin32_postinstall.py)
+12. Configure the API's URL within main.py to be the IP address of the vEthernet default switch (Windows 10 using VMware)
+
+```
+ipconfig
+
+Ethernet adapter vEthernet (Default Switch):
+Connection-specific DNS Suffix  . :
+Link-local IPv6 Address . . . . . : fe80::527:2de8:fcd4:75a1%16
+IPv4 Address. . . . . . . . . . . : 192.168.32.1
+Subnet Mask . . . . . . . . . . . : 255.255.240.0
+Default Gateway . . . . . . . . . :
+```
+```python
+API_URL = "http://192.168.32.1:8000"
+```
+13.  Open task scheduler
+     - Right click on Task Scheduler Library
+     - Create Basic Task
+     - Name it "Run PIAV"
+     - Select "When I log on"
+     - Select "Start a program"
+     - Set "Program/script" to `C:\PIAV\run.py`
+     - Set "Start in" to `C:\PIAV\`
+14. Right click on the task, select Properties and "Run with highest privilege" 
+15. Restart the VM and ensure that the program starts running (should be able to see /request_task in the API logs)
+```
+[10:54:05] <processor> Task requested however no tasks are currently waiting. (vm.py:52)
+[10:54:05] <http>: 192.168.32.1:65007 - "POST /vm/request_task HTTP/1.1" 404 Not Found
+[10:54:07] <processor> Task requested however no tasks are currently waiting. (vm.py:52)
+[10:54:07] <http>: 192.168.32.1:65010 - "POST /vm/request_task HTTP/1.1" 404 Not Found
+```
+16. Shut down the VM
+
+## Setting up VMs inside VMware
+1. Change the VM specifications to 3 processor cores and 3GB of RAM
+1. Right click on the VM in VMware Workstation's library panel
+2. Click on Hard Drive
+3. Click Advanced
+4. Check Independant and select Non-persistent
+5. Right click on the VM in VMware Workstation's library panel
+6. Select Clone
+7. Select "Create a full clone"
+8. Clone the VM to another directory (this is the directory that will be passed to the VM watcher)
+9. Repeat steps 21-23 for the desired number of VMs
+10. Start the VM watcher `python .\vm_watcher_vmware.py G:\piavVMs "C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe"`
 
 ## Virtualisation Notes
 
