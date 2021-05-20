@@ -1,6 +1,6 @@
 how I found this property
 
-inside inspect.exe/uispy.exe I found this property:
+Inside inspect.exe/uispy.exe I found this property:
 
 AutomationElement
   General Accessibility
@@ -46,26 +46,26 @@ ControlPatterns
     WindowInteractionState:	"BlockedByModalWindow"
     IsTopmost:	"False"
 
-Note WindowInteractionState is exactly what we want
+Note WindowInteractionState is exactly what we want for detecting whether a control has been blocked by a modal window (popup)
 
-some googling takes us to this pagE:
+Googling this value brings up the Microsoft docs for the UIA API:
 
 https://docs.microsoft.com/en-us/dotnet/api/system.windows.automation.windowinteractionstate?view=net-5.0
 https://docs.microsoft.com/en-us/windows/win32/winauto/uiauto-implementingwindow
 
 Note that it comes under Object -> ValueType -> Enum -> WindowInteractionState
- 
-it's weird that pywinauto doens't have this value defined
- 
-it does however have other enums defined, such as https://github.com/pywinauto/pywinauto/blob/ebb174d03e91a1fb358d8ba46af08b44b8c8e181/pywinauto/windows/uia_defines.py#L205 "ScrollAmount_SmallDecrement"
 
-it comes from:
+Pywinauto does not have a helper to find this value
+
+It does however have other enums defined, such as https://github.com/pywinauto/pywinauto/blob/ebb174d03e91a1fb358d8ba46af08b44b8c8e181/pywinauto/windows/uia_defines.py#L205 "ScrollAmount_SmallDecrement"
+
+It comes from:
 comtypes.gen.UIAutomationClient.ScrollAmount_LargeDecrement
 
-if we print out all the properties:
+If we print out all the properties from UIAutomation client
 print(comtypes.gen.UIAutomationClient.__dict__)
 
-we can see that it definitely exists
+We can see that it definitely exists
 
 lState_Normal': 0, 'WindowVisualState_Maximized': 1, 
 'WindowVisualState_Minimized': 2, 
@@ -75,7 +75,7 @@ lState_Normal': 0, 'WindowVisualState_Maximized': 1,
 WindowInteractionState_ReadyForUserInteraction': 2, 
 'WindowInteractionState_BlockedByModalWindow': 3
 
-Note that visualstate is implementeD:
+Note that we can see how visualstate is implemented:
 josh@Josh-PC:~/pywinauto$ grep -ir "VisualState"
 pywinauto/controls/uiawrapper.py:            iface.SetWindowVisualState(uia_defs.window_visual_state_minimized)
 pywinauto/controls/uiawrapper.py:            iface.SetWindowVisualState(uia_defs.window_visual_state_maximized)
@@ -93,10 +93,9 @@ https://docs.microsoft.com/en-us/dotnet/api/system.windows.automation.windowpatt
 
 which is a WindowPattern function
 
-WindowPattenr has WindowVisualState as a property "WindowVisualStateProperty"
+WindowPattern has WindowVisualState as a property "WindowVisualStateProperty"
 WindowPattern has WindowInteractionState as a property "WindowInteractionStateProperty"
 
 to get the current state, pywinauto does iface.CurrentWindowVisualState
 
 therefore, we can access InteractionStateProperty via iface.CurrentInteractionState
-!!!
