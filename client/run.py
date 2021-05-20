@@ -205,14 +205,6 @@ try:
     else:
         logger.error("Failed to post data, status code: {}", response.status_code)
 
-    if "--restart-at-end" in sys.argv:
-        # https://stackoverflow.com/a/50826520
-        logger.info("Restarting...")
-
-        import ctypes
-
-        user32 = ctypes.WinDLL("user32")
-        user32.ExitWindowsEx(0x00000002, 0x00000000)
 except Exception as exception:
     error_message = "".join(traceback.format_tb(exception.__traceback__)).strip()
 
@@ -221,3 +213,16 @@ except Exception as exception:
         API_URL + "/error/" + task_input["_id"],
         json={"stack_trace": error_message},
     )
+
+if "--do-not-shutdown" not in sys.argv:
+    # https://stackoverflow.com/a/50824776
+    logger.info("Shutting down...")
+
+    # Attempt shutdown via Windows API
+    import ctypes
+
+    user32 = ctypes.WinDLL("user32")
+    user32.ExitWindowsEx(0x00000008, 0x00000000)
+
+    # If not, try shutdown using the shutdown command
+    os.system("shutdown /p /f")
